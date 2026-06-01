@@ -1,0 +1,9 @@
+# Ignore all lexicon data except fixture and feedback schema
+lexicons/lanes/
+lexicons/lisan/
+lexicons/taj/
+lexicons/qamus/
+lexicons/wordnet/
+lexicons/index.db
+feedback/feedback.db
+review/

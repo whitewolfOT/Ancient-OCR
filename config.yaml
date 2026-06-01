@@ -1,0 +1,155 @@
+paths:
+  data: data/
+  lexicons: data/lexicons/
+  models: models/
+  cache: .cache/
+
+preprocessing:
+  dpi: 300
+  denoise:
+    enabled: true
+    kernel_size: 3
+    method: fast_nl_means  # "fast_nl_means" | "median"
+  clahe:
+    enabled: true
+    clip_limit: 2.0
+    tile_grid: [8, 8]
+  deskew:
+    enabled: true
+    max_angle: 15.0
+    no_op_threshold: 0.5  # degrees; skip correction below this
+    angle_steps: 100
+  layout:
+    enabled: true
+    backend: opencv  # "opencv" | "layoutparser" (needs [layout] extra)
+
+ocr:
+  paddle:
+    enabled: true
+    lang: ar
+    weight: 0.6
+    use_gpu: false
+  tesseract:
+    enabled: true
+    lang: ara
+    weight: 0.4
+    config: "--psm 6"
+  trocr:
+    enabled: false
+    model_id: null  # e.g. "microsoft/trocr-base-handwritten" fine-tuned for Arabic
+    weight: 0.0
+    conf_threshold: 0.5  # only run on tokens below this confidence
+  min_word_confidence: 0.1
+  ensemble_iou_threshold: 0.3
+
+normalization:
+  alef_variants: true     # أ إ آ ٱ → ا
+  alef_maqsura: true      # ى → ي
+  taa_marbuta: false      # ة → ه (OFF: classical texts rely on this distinction)
+  tatweel: true           # ـ removal
+  hamza: false            # conservative hamza normalization
+  diacritics: strip_partial  # "strip_all" | "strip_partial" | "preserve"
+  mode: conservative
+
+morphology:
+  backend: camel  # "camel" | "rule_based"
+  camel_db: morphology-db-msa-r13
+  max_root_candidates: 5
+  prefix_list:
+    - "ال"
+    - "و"
+    - "ف"
+    - "ب"
+    - "ك"
+    - "ل"
+    - "لل"
+    - "بال"
+    - "وال"
+    - "فال"
+  suffix_list:
+    - "ة"
+    - "ات"
+    - "ون"
+    - "ين"
+    - "ان"
+    - "اء"
+    - "ي"
+    - "ها"
+    - "هم"
+    - "هن"
+    - "كم"
+    - "نا"
+
+lexicon:
+  sources:
+    fixture:
+      enabled: true
+      priority: 10
+      era: classical
+    lanes:
+      enabled: false
+      priority: 9
+      era: classical
+    lisan:
+      enabled: false
+      priority: 8
+      era: classical
+    taj:
+      enabled: false
+      priority: 7
+      era: classical
+    qamus:
+      enabled: false
+      priority: 6
+      era: classical
+    wordnet:
+      enabled: false
+      priority: 3
+      era: modern
+    almaany:
+      enabled: false  # ToS prohibits scraping — do not enable
+      priority: 0
+      era: modern
+  index:
+    backend: sqlite
+    path: data/lexicons/index.db
+    approximate_match_threshold: 0.8
+
+scoring:
+  ocr_weight: 0.30
+  lexicon_weight: 0.30
+  morphology_weight: 0.20
+  context_weight: 0.20
+
+decision:
+  accept: 0.90
+  accept_with_note: 0.70
+  uncertain: 0.50
+  # below uncertain → review_required
+
+context_scorer:
+  backend: ngram  # "ngram" | "arabert" (needs [lm] extra)
+  ngram_n: 3
+  arabert_model: null  # e.g. "aubmindlab/bert-base-arabertv2"
+  fallback_score: 0.5  # returned when context window is empty
+
+output:
+  default_mode: clean  # "clean" | "annotated" | "debug"
+  json_indent: 2
+  review:
+    enabled: true
+    export_html: true
+    crop_dir: data/review/
+
+cache:
+  enabled: true
+  path: .cache/
+  ttl: 86400  # 24 hours
+
+logging:
+  level: INFO  # "DEBUG" | "INFO" | "WARNING" | "ERROR"
+  structured: false  # true = key=value format at all levels
+
+training:
+  feedback_db: data/feedback/feedback.db
+  min_feedback_for_calibration: 50

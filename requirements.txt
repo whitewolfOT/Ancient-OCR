@@ -1,0 +1,28 @@
+# image + io
+opencv-python-headless>=4.9
+pillow>=10.0
+numpy>=1.26
+pymupdf>=1.24
+
+# ocr
+paddleocr>=2.7
+paddlepaddle>=2.6
+pytesseract>=0.3.10
+transformers>=4.40
+torch>=2.2
+
+# arabic nlp
+camel-tools>=1.5
+python-Levenshtein>=0.25
+
+# api + cli
+fastapi>=0.110
+uvicorn>=0.29
+python-multipart>=0.0.9
+typer>=0.12
+
+# utils + tests
+pyyaml>=6.0
+pydantic>=2.6
+diskcache>=5.6
+pytest>=8.0

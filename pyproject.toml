@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ancient-ocr"
+version = "0.1.0"
+description = "Arabic OCR + Lexicon-Augmented Intelligence pipeline"
+requires-python = ">=3.10"
+dependencies = [
+    "opencv-python-headless>=4.9",
+    "pillow>=10.0",
+    "numpy>=1.26",
+    "pymupdf>=1.24",
+    "paddleocr>=2.7",
+    "paddlepaddle>=2.6",
+    "pytesseract>=0.3.10",
+    "camel-tools>=1.5",
+    "python-Levenshtein>=0.25",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "python-multipart>=0.0.9",
+    "typer>=0.12",
+    "pyyaml>=6.0",
+    "pydantic>=2.6",
+    "diskcache>=5.6",
+]
+
+[project.optional-dependencies]
+layout = ["layoutparser>=0.3"]
+trocr = ["transformers>=4.40", "torch>=2.2"]
+lm = ["arabert", "kenlm"]
+finetune = []  # Tesseract fine-tuning — requires system tesseract training tools
+dev = ["pytest>=8.0", "pytest-cov", "ruff"]
+
+[project.scripts]
+ancient-ocr = "cli.main:app"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
