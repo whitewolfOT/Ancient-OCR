@@ -1,0 +1,80 @@
+{"lemma": "كتاب", "root": "كتب", "pattern": "فِعَال", "gloss": "book; written document", "source": "_fixture", "era": "classical", "domain": null, "examples": ["قرأ الكتاب", "كتاب مفيد"], "priority": 10}
+{"lemma": "كتب", "root": "كتب", "pattern": "فَعَلَ", "gloss": "to write", "source": "_fixture", "era": "classical", "domain": null, "examples": ["كتب الرسالة"], "priority": 10}
+{"lemma": "كاتب", "root": "كتب", "pattern": "فَاعِل", "gloss": "writer; scribe", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "مكتوب", "root": "كتب", "pattern": "مَفْعُول", "gloss": "written; letter", "source": "_fixture", "era": "classical", "domain": null, "examples": ["مكتوب رسمي"], "priority": 10}
+{"lemma": "مكتبة", "root": "كتب", "pattern": "مَفْعَلَة", "gloss": "library; bookshop", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "كتابة", "root": "كتب", "pattern": "فِعَالَة", "gloss": "writing; script", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "قلم", "root": "قلم", "pattern": "فَعَل", "gloss": "pen; reed pen", "source": "_fixture", "era": "classical", "domain": null, "examples": ["كتب بالقلم"], "priority": 10}
+{"lemma": "قرأ", "root": "قرأ", "pattern": "فَعَلَ", "gloss": "to read; to recite", "source": "_fixture", "era": "classical", "domain": null, "examples": ["قرأ القرآن"], "priority": 10}
+{"lemma": "قارئ", "root": "قرأ", "pattern": "فَاعِل", "gloss": "reader; reciter", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "قراءة", "root": "قرأ", "pattern": "فِعَالَة", "gloss": "reading; recitation", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "علم", "root": "علم", "pattern": "فَعَل", "gloss": "knowledge; science", "source": "_fixture", "era": "classical", "domain": null, "examples": ["طلب العلم فريضة"], "priority": 10}
+{"lemma": "عَلِمَ", "root": "علم", "pattern": "فَعِلَ", "gloss": "to know; to learn", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "عالم", "root": "علم", "pattern": "فَاعِل", "gloss": "scholar; learned man", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "معلم", "root": "علم", "pattern": "مُفَعِّل", "gloss": "teacher; instructor", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "تعليم", "root": "علم", "pattern": "تَفْعِيل", "gloss": "education; teaching", "source": "_fixture", "era": "classical", "domain": "education", "examples": ["التعليم أساس التقدم"], "priority": 10}
+{"lemma": "رجل", "root": "رجل", "pattern": "فَعَل", "gloss": "man; foot", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "امرأة", "root": "مرأ", "pattern": null, "gloss": "woman", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "بيت", "root": "بيت", "pattern": "فَعْل", "gloss": "house; home; verse of poetry", "source": "_fixture", "era": "classical", "domain": null, "examples": ["البيت المعمور"], "priority": 10}
+{"lemma": "مسجد", "root": "سجد", "pattern": "مَفْعِل", "gloss": "mosque; place of prostration", "source": "_fixture", "era": "classical", "domain": "religion", "examples": ["الصلاة في المسجد"], "priority": 10}
+{"lemma": "سجد", "root": "سجد", "pattern": "فَعَلَ", "gloss": "to prostrate; to bow in worship", "source": "_fixture", "era": "classical", "domain": "religion", "examples": [], "priority": 10}
+{"lemma": "صلاة", "root": "صلو", "pattern": "فَعَالة", "gloss": "prayer; ritual prayer", "source": "_fixture", "era": "classical", "domain": "religion", "examples": ["إقام الصلاة"], "priority": 10}
+{"lemma": "دين", "root": "دين", "pattern": "فَعْل", "gloss": "religion; faith; debt", "source": "_fixture", "era": "classical", "domain": "religion", "examples": [], "priority": 10}
+{"lemma": "قرآن", "root": "قرأ", "pattern": "فُعْلان", "gloss": "the Quran; recitation", "source": "_fixture", "era": "classical", "domain": "religion", "examples": ["تلاوة القرآن"], "priority": 10}
+{"lemma": "آية", "root": "أيي", "pattern": "فَاعِلة", "gloss": "verse (of Quran); sign; miracle", "source": "_fixture", "era": "classical", "domain": "religion", "examples": [], "priority": 10}
+{"lemma": "سورة", "root": "سور", "pattern": "فُعْلة", "gloss": "chapter of the Quran; wall", "source": "_fixture", "era": "classical", "domain": "religion", "examples": [], "priority": 10}
+{"lemma": "خط", "root": "خطط", "pattern": "فَعْل", "gloss": "line; handwriting; calligraphy", "source": "_fixture", "era": "classical", "domain": null, "examples": ["الخط العربي"], "priority": 10}
+{"lemma": "ورق", "root": "ورق", "pattern": "فَعَل", "gloss": "paper; leaf; foliage", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "صفحة", "root": "صفح", "pattern": "فَعْلة", "gloss": "page; surface", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "نص", "root": "نصص", "pattern": "فَعْل", "gloss": "text; passage; explicit statement", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "باب", "root": "بوب", "pattern": "فَعْل", "gloss": "door; gate; chapter (of a book)", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "فصل", "root": "فصل", "pattern": "فَعْل", "gloss": "chapter; separation; season", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "مخطوط", "root": "خطط", "pattern": "مَفْعُول", "gloss": "manuscript; handwritten document", "source": "_fixture", "era": "classical", "domain": "manuscripts", "examples": ["مخطوط نادر"], "priority": 10}
+{"lemma": "نسخة", "root": "نسخ", "pattern": "فُعْلة", "gloss": "copy; manuscript copy; version", "source": "_fixture", "era": "classical", "domain": "manuscripts", "examples": [], "priority": 10}
+{"lemma": "نسخ", "root": "نسخ", "pattern": "فَعْل", "gloss": "to copy; to abrogate; Naskh script", "source": "_fixture", "era": "classical", "domain": "manuscripts", "examples": [], "priority": 10}
+{"lemma": "حرف", "root": "حرف", "pattern": "فَعْل", "gloss": "letter (of alphabet); edge; craft", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "كلمة", "root": "كلم", "pattern": "فَعْلة", "gloss": "word; speech", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "جملة", "root": "جمل", "pattern": "فَعْلة", "gloss": "sentence; whole; sum", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "لغة", "root": "لغو", "pattern": "فَعْلة", "gloss": "language; tongue; dialect", "source": "_fixture", "era": "classical", "domain": "linguistics", "examples": ["اللغة العربية"], "priority": 10}
+{"lemma": "نحو", "root": "نحو", "pattern": "فَعْل", "gloss": "grammar; direction; approximately", "source": "_fixture", "era": "classical", "domain": "linguistics", "examples": [], "priority": 10}
+{"lemma": "صرف", "root": "صرف", "pattern": "فَعْل", "gloss": "morphology; to change; to spend", "source": "_fixture", "era": "classical", "domain": "linguistics", "examples": [], "priority": 10}
+{"lemma": "فعل", "root": "فعل", "pattern": "فَعْل", "gloss": "verb; action; deed", "source": "_fixture", "era": "classical", "domain": "linguistics", "examples": [], "priority": 10}
+{"lemma": "اسم", "root": "سمو", "pattern": "فِعْل", "gloss": "noun; name", "source": "_fixture", "era": "classical", "domain": "linguistics", "examples": [], "priority": 10}
+{"lemma": "سيف", "root": "سيف", "pattern": "فَعْل", "gloss": "sword", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "ماء", "root": "موه", "pattern": "فَعْل", "gloss": "water", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "أرض", "root": "أرض", "pattern": "فَعْل", "gloss": "earth; land; ground", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "سماء", "root": "سمو", "pattern": "فَعَال", "gloss": "sky; heaven", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "شمس", "root": "شمس", "pattern": "فَعْل", "gloss": "sun", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "قمر", "root": "قمر", "pattern": "فَعَل", "gloss": "moon", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "نهر", "root": "نهر", "pattern": "فَعَل", "gloss": "river; to rebuke", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "جبل", "root": "جبل", "pattern": "فَعَل", "gloss": "mountain", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "ملك", "root": "ملك", "pattern": "فَعَل", "gloss": "king; angel; to own", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "حكمة", "root": "حكم", "pattern": "فُعْلة", "gloss": "wisdom; maxim", "source": "_fixture", "era": "classical", "domain": null, "examples": ["الحكمة ضالة المؤمن"], "priority": 10}
+{"lemma": "حكم", "root": "حكم", "pattern": "فَعَلَ", "gloss": "to rule; to judge; to govern", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "عدل", "root": "عدل", "pattern": "فَعْل", "gloss": "justice; to be just", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "حق", "root": "حقق", "pattern": "فَعْل", "gloss": "truth; right; due", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "زمن", "root": "زمن", "pattern": "فَعَل", "gloss": "time; era; period", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "تاريخ", "root": "أرخ", "pattern": "تَفْعِيل", "gloss": "history; date", "source": "_fixture", "era": "classical", "domain": "history", "examples": ["تاريخ الإسلام"], "priority": 10}
+{"lemma": "مدينة", "root": "دين", "pattern": "مَفْعِلة", "gloss": "city; town", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "دولة", "root": "دول", "pattern": "فُعْلة", "gloss": "state; nation; dynasty", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "حضارة", "root": "حضر", "pattern": "فَعَالة", "gloss": "civilization; culture", "source": "_fixture", "era": "classical", "domain": "history", "examples": ["الحضارة الإسلامية"], "priority": 10}
+{"lemma": "شعر", "root": "شعر", "pattern": "فَعَل", "gloss": "poetry; hair; to feel", "source": "_fixture", "era": "classical", "domain": "literature", "examples": [], "priority": 10}
+{"lemma": "شاعر", "root": "شعر", "pattern": "فَاعِل", "gloss": "poet", "source": "_fixture", "era": "classical", "domain": "literature", "examples": [], "priority": 10}
+{"lemma": "قصيدة", "root": "قصد", "pattern": "فَعِيلة", "gloss": "ode; long poem", "source": "_fixture", "era": "classical", "domain": "literature", "examples": [], "priority": 10}
+{"lemma": "بيت الشعر", "root": "بيت", "pattern": null, "gloss": "verse of poetry; poetic line", "source": "_fixture", "era": "classical", "domain": "literature", "examples": [], "priority": 10}
+{"lemma": "طب", "root": "طبب", "pattern": "فَعْل", "gloss": "medicine; medical treatment", "source": "_fixture", "era": "classical", "domain": "medicine", "examples": [], "priority": 10}
+{"lemma": "طبيب", "root": "طبب", "pattern": "فَعِيل", "gloss": "physician; doctor", "source": "_fixture", "era": "classical", "domain": "medicine", "examples": [], "priority": 10}
+{"lemma": "حساب", "root": "حسب", "pattern": "فِعَال", "gloss": "arithmetic; calculation; account", "source": "_fixture", "era": "classical", "domain": "science", "examples": [], "priority": 10}
+{"lemma": "هندسة", "root": "هندس", "pattern": null, "gloss": "geometry; engineering", "source": "_fixture", "era": "classical", "domain": "science", "examples": [], "priority": 10}
+{"lemma": "فلسفة", "root": null, "pattern": null, "gloss": "philosophy (loanword from Greek)", "source": "_fixture", "era": "classical", "domain": "philosophy", "examples": [], "priority": 10}
+{"lemma": "حاسوب", "root": "حسب", "pattern": "فَاعُول", "gloss": "computer", "source": "_fixture", "era": "modern", "domain": "technology", "examples": ["استخدام الحاسوب"], "priority": 3}
+{"lemma": "برنامج", "root": null, "pattern": null, "gloss": "program; software", "source": "_fixture", "era": "modern", "domain": "technology", "examples": [], "priority": 3}
+{"lemma": "شبكة", "root": "شبك", "pattern": "فَعْلة", "gloss": "network; web; net", "source": "_fixture", "era": "modern", "domain": "technology", "examples": ["شبكة الإنترنت"], "priority": 3}
+{"lemma": "بيانات", "root": "بين", "pattern": null, "gloss": "data; information (plural)", "source": "_fixture", "era": "modern", "domain": "technology", "examples": [], "priority": 3}
+{"lemma": "تقنية", "root": "تقن", "pattern": "فَعْلِيَّة", "gloss": "technology; technique", "source": "_fixture", "era": "modern", "domain": "technology", "examples": [], "priority": 3}
+{"lemma": "صورة", "root": "صور", "pattern": "فُعْلة", "gloss": "image; picture; form", "source": "_fixture", "era": "classical", "domain": null, "examples": ["صورة واضحة"], "priority": 10}
+{"lemma": "ضوء", "root": "ضوأ", "pattern": "فَعْل", "gloss": "light", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "لون", "root": "لون", "pattern": "فَعْل", "gloss": "colour; kind; type", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "قلب", "root": "قلب", "pattern": "فَعْل", "gloss": "heart; to turn over; to flip", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "عقل", "root": "عقل", "pattern": "فَعْل", "gloss": "mind; intellect; reason", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
+{"lemma": "روح", "root": "روح", "pattern": "فُعْل", "gloss": "soul; spirit; wind", "source": "_fixture", "era": "classical", "domain": null, "examples": [], "priority": 10}
