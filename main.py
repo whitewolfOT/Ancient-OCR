@@ -39,7 +39,7 @@ def process_file(file_path: str, mode: str = "clean") -> dict:
         raise ValueError(f"Invalid mode '{mode}'. Must be clean | annotated | debug.")
 
     # --- Stage 1: document loading ---
-    doc_loader = _require("io.document_loader")
+    doc_loader = _require("ingest.document_loader")
     pages = doc_loader.load_document(file_path)
     log.info(f"loaded page_count={len(pages)}")
 
@@ -61,7 +61,7 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
     log = get_logger(__name__)
 
     preprocessing = _require("preprocessing.image_pipeline")
-    region_cropper = _require("io.region_cropper")
+    region_cropper = _require("ingest.region_cropper")
     layout_detection = _require("preprocessing.layout_detection")
     ensemble = _require("ocr_engine.ensemble")
     noise_filter = _require("normalization.noise_filter")
