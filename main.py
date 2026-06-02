@@ -66,6 +66,7 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
     ensemble = _require("ocr_engine.ensemble")
     noise_filter = _require("normalization.noise_filter")
     arabic_normalizer = _require("normalization.arabic_normalizer")
+    stopword_filter = _require("normalization.stopword_filter")
     camel_adapter = _require("morphology.camel_adapter")
     root_extractor = _require("morphology.root_extractor")
     query_engine = _require("lexicon_engine.query_engine")
@@ -76,6 +77,12 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
     decision_mod = _require("confidence_engine.decision")
     state_mod = _require("confidence_engine.state")
     formatter = _require("output.formatter")
+
+    _accept_threshold = 0.90
+    try:
+        _accept_threshold = cfg.decision.accept
+    except AttributeError:
+        pass
 
     all_token_states: list = []
     all_raw_ocr: list = []
@@ -112,6 +119,42 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
                 word_token.text, cfg
             )
             full_norm_log = noise_log + norm_log
+
+            # ── Tier 1: stopword — skip morphology and lexicon entirely ───────
+            if stopword_filter.is_stopword(normalized_text, cfg):
+                all_token_states.append(state_mod.TokenState(
+                    original=word_token.text,
+                    normalized=normalized_text,
+                    normalization_log=full_norm_log,
+                    candidates=[],
+                    selected=normalized_text,
+                    confidence=1.0,
+                    sources=[],
+                    decision="accept",
+                    reason_code="stopword",
+                    bbox=word_token.bbox,
+                    page_index=page_index,
+                ))
+                continue
+
+            # ── Tier 3: high OCR confidence — trust the engine, skip pipeline ─
+            if word_token.confidence >= _accept_threshold:
+                all_token_states.append(state_mod.TokenState(
+                    original=word_token.text,
+                    normalized=normalized_text,
+                    normalization_log=full_norm_log,
+                    candidates=[],
+                    selected=normalized_text,
+                    confidence=word_token.confidence,
+                    sources=[],
+                    decision="accept",
+                    reason_code="ocr_confident",
+                    bbox=word_token.bbox,
+                    page_index=page_index,
+                ))
+                continue
+
+            # ── Tier 4: full resolution — morphology + lexicon + scoring ──────
 
             # Stage 6: morphological analysis
             morph_result = camel_adapter.analyze(normalized_text)
