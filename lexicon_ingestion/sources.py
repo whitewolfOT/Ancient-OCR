@@ -39,7 +39,7 @@ SOURCES: list[SourceConfig] = [
     ),
     SourceConfig(
         name="lisan",
-        enabled=True,
+        enabled=False,       # requires Shamela4 bulk dump — enable only after build step
         priority=8,
         era="classical",
         license="openiti",
@@ -49,7 +49,7 @@ SOURCES: list[SourceConfig] = [
     ),
     SourceConfig(
         name="taj",
-        enabled=True,
+        enabled=False,       # requires Shamela4 bulk dump — enable only after build step
         priority=7,
         era="classical",
         license="openiti",
