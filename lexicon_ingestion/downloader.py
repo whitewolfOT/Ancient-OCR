@@ -210,6 +210,8 @@ def build_lexicons_db(
 ) -> int:
     """Fetch raw sources, parse them, and write a unified ``lexicons.db``.
 
+    Build path only. Runtime uses ensure_lexicons_db().
+
     Parameters
     ----------
     output_path : path for the output SQLite (defaults to ``_DEFAULT_DB_PATH``)
@@ -402,6 +404,10 @@ def ensure_lexicons_db(
     progress_cb: Callable[[float], None] | None = None,
 ) -> str | None:
     """Ensure a local ``lexicons.db`` is present and up-to-date.
+
+    Runtime path. Downloads from HuggingFace if absent or stale; falls back
+    to the local copy when HF is unreachable. After this call load_entries()
+    and build_index() read from the same file this function manages.
 
     Checks the local copy first; downloads from HuggingFace only if the file
     is absent or its ETag sidecar differs from the remote ETag.

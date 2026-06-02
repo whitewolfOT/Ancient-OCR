@@ -42,10 +42,10 @@ def _connect(db_path: str) -> sqlite3.Connection:
 def _db_path(config=None) -> str:
     if config is not None:
         try:
-            return config.lexicon.index.path
+            return config.lexicon.db_path
         except AttributeError:
             pass
-    return "data/lexicons/index.db"
+    return "data/lexicons/lexicons.db"
 
 
 def save_entries(entries: list[LexiconEntry], source_name: str, config=None) -> int:

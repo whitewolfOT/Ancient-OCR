@@ -84,8 +84,11 @@ def ingest_all_enabled(config=None) -> dict[str, int]:
     """
     Ingest every enabled source and return a {source_name: entry_count} map.
 
+    Local development convenience — re-parses raw sources into the DB. Not the
+    runtime path; runtime uses ensure_lexicons_db() to download a pre-built DB.
+
     Sources whose data files are absent return 0 entries — they never crash.
-    Call this after downloading new lexicon data to rebuild the index.
+    Call this after downloading new lexicon data to rebuild the index locally.
     """
     from lexicon_ingestion.sources import enabled_sources
 

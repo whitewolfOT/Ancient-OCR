@@ -487,14 +487,33 @@ def test_ingest_all_enabled_includes_fixture(tmp_path):
     ib._index_singleton = None
 
 
-def test_ingest_all_enabled_absent_sources_return_zero(tmp_path):
+def test_ingest_all_enabled_absent_sources_return_zero(tmp_path, monkeypatch):
     """Absent real-source data files return 0 without crashing."""
     import lexicon_ingestion.index_builder as ib
+    from lexicon_ingestion.sources import SourceConfig
+
+    # Redirect SOURCES to point at non-existent temp paths so real downloaded
+    # data (e.g. data/lexicons/lanes/) does not bleed into this test.
+    absent = [
+        SourceConfig(name="lanes",  enabled=True, priority=9, era="classical",
+                     license="test", path=str(tmp_path / "lanes/"),
+                     parser_adapter="lanes_xml"),
+        SourceConfig(name="lisan",  enabled=True, priority=8, era="classical",
+                     license="test", path=str(tmp_path / "shamela/"),
+                     parser_adapter="shamela_sqlite", book_name="لسان العرب"),
+        SourceConfig(name="taj",    enabled=True, priority=7, era="classical",
+                     license="test", path=str(tmp_path / "shamela/"),
+                     parser_adapter="shamela_sqlite", book_name="تاج العروس"),
+        SourceConfig(name="qamus",  enabled=True, priority=6, era="classical",
+                     license="test", path=str(tmp_path / "qamus/"),
+                     parser_adapter="qamus_lmf"),
+    ]
+    monkeypatch.setattr("lexicon_ingestion.sources.SOURCES", absent)
 
     class _Cfg:
         class lexicon:
+            db_path = str(tmp_path / "test2.db")
             class index:
-                path = str(tmp_path / "test2.db")
                 approximate_match_threshold = 0.8
 
     ib._index_singleton = None

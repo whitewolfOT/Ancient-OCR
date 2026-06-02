@@ -81,6 +81,7 @@ morphology:
     - "نا"
 
 lexicon:
+  db_path: data/lexicons/lexicons.db   # single DB for both build and runtime
   sources:
     fixture:
       enabled: true
@@ -132,7 +133,6 @@ lexicon:
     - "رحمه الله"
   index:
     backend: sqlite
-    path: data/lexicons/index.db
     approximate_match_threshold: 0.8
 
 scoring:
