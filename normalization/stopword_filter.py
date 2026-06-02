@@ -161,8 +161,27 @@ _BUILTIN: frozenset[str] = frozenset({
 })
 
 
+# ── Formulaic phrases — checked as units before single-token lookup ──────────
+# Classical / Quranic formulae that appear verbatim throughout manuscript text.
+# Stored un-normalized; _build_phrase_set() normalises at load time exactly
+# like the main word list.  Space-joined normalized-token strings are the keys.
+
+_BUILTIN_PHRASES: frozenset[str] = frozenset({
+    "بسم الله",
+    "الحمد لله",
+    "صلى الله عليه وسلم",
+    "رضي الله عنه",
+    "عليه السلام",
+    "رحمه الله",
+})
+
+# Largest phrase word count — drives the lookahead window in the pipeline
+MAX_PHRASE_WORDS: int = max(len(p.split()) for p in _BUILTIN_PHRASES)
+
+
 # Module-level cache — built once per config hash, never rebuilt during a run
 _cache: dict[str, frozenset[str]] = {}
+_phrase_cache: dict[str, frozenset[str]] = {}
 
 
 def _build_set(config=None) -> frozenset[str]:
@@ -193,6 +212,47 @@ def _build_set(config=None) -> frozenset[str]:
     _cache[cache_key] = result
     log.debug(f"stopword_filter: built set size={len(result)}")
     return result
+
+
+def _normalize_phrase(phrase: str) -> str:
+    from normalization.arabic_normalizer import normalize_text as _norm
+    return " ".join(_norm(w)[0] for w in phrase.split())
+
+
+def _build_phrase_set(config=None) -> frozenset[str]:
+    """Normalise the canonical phrase list + any config extras, cache the result."""
+    from utils.cache import config_hash
+
+    cache_key = f"phrases:{config_hash()}"
+    if cache_key in _phrase_cache:
+        return _phrase_cache[cache_key]
+
+    phrases: set[str] = set()
+    for p in _BUILTIN_PHRASES:
+        phrases.add(_normalize_phrase(p))
+
+    if config is not None:
+        try:
+            extras = config.lexicon.stopword_phrases or []
+            for p in extras:
+                phrases.add(_normalize_phrase(str(p)))
+        except AttributeError:
+            pass
+
+    result = frozenset(phrases)
+    _phrase_cache[cache_key] = result
+    log.debug(f"stopword_filter: built phrase set size={len(result)}")
+    return result
+
+
+def is_stopword_phrase(normalized_text: str, config=None) -> bool:
+    """Return True if *normalized_text* (space-joined normalized tokens) is a formulaic phrase.
+
+    Build the input by joining consecutive normalized tokens with a single space,
+    then call this function.  The pipeline scans windows from MAX_PHRASE_WORDS down
+    to 2 so the longest matching phrase wins.
+    """
+    return normalized_text in _build_phrase_set(config)
 
 
 def is_stopword(normalized_text: str, config=None) -> bool:

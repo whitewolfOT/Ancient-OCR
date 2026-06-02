@@ -111,8 +111,12 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
         )
         all_raw_ocr.append(page_ocr)
 
-        # Stages 5–8: per-token processing
-        for word_token in page_ocr.words:
+        # Stages 5–8: per-token processing (index-based for phrase lookahead)
+        words = list(page_ocr.words)
+        i = 0
+        while i < len(words):
+            word_token = words[i]
+
             # Stage 5: normalization
             _, noise_log = noise_filter.clean_noise(word_token.text)
             normalized_text, norm_log = arabic_normalizer.normalize_text(
@@ -120,7 +124,49 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
             )
             full_norm_log = noise_log + norm_log
 
-            # ── Tier 1: stopword — skip morphology and lexicon entirely ───────
+            # ── Tier 1a: phrase stopword — consume window, skip pipeline ──────
+            phrase_consumed = False
+            for window in range(stopword_filter.MAX_PHRASE_WORDS, 1, -1):
+                if i + window > len(words):
+                    continue
+                phrase_tokens = words[i:i + window]
+                phrase_text = " ".join(
+                    [normalized_text] + [
+                        arabic_normalizer.normalize_text(pt.text, cfg)[0]
+                        for pt in phrase_tokens[1:]
+                    ]
+                )
+                if stopword_filter.is_stopword_phrase(phrase_text, cfg):
+                    for j, pt in enumerate(phrase_tokens):
+                        if j == 0:
+                            pt_norm, pt_norm_log, pt_noise_log = (
+                                normalized_text, norm_log, noise_log
+                            )
+                        else:
+                            _, pt_noise_log = noise_filter.clean_noise(pt.text)
+                            pt_norm, pt_norm_log = arabic_normalizer.normalize_text(
+                                pt.text, cfg
+                            )
+                        all_token_states.append(state_mod.TokenState(
+                            original=pt.text,
+                            normalized=pt_norm,
+                            normalization_log=pt_noise_log + pt_norm_log,
+                            candidates=[],
+                            selected=pt_norm,
+                            confidence=1.0,
+                            sources=[],
+                            decision="accept",
+                            reason_code="stopword_phrase",
+                            bbox=pt.bbox,
+                            page_index=page_index,
+                        ))
+                    i += window
+                    phrase_consumed = True
+                    break
+            if phrase_consumed:
+                continue
+
+            # ── Tier 1b: single-token stopword — skip morphology and lexicon ──
             if stopword_filter.is_stopword(normalized_text, cfg):
                 all_token_states.append(state_mod.TokenState(
                     original=word_token.text,
@@ -135,6 +181,7 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
                     bbox=word_token.bbox,
                     page_index=page_index,
                 ))
+                i += 1
                 continue
 
             # ── Tier 3: high OCR confidence — trust the engine, skip pipeline ─
@@ -152,6 +199,7 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
                     bbox=word_token.bbox,
                     page_index=page_index,
                 ))
+                i += 1
                 continue
 
             # ── Tier 4: full resolution — morphology + lexicon + scoring ──────
@@ -190,6 +238,7 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
                 page_index=page_index,
             )
             all_token_states.append(token_state)
+            i += 1
 
     # Stage 9: format output
     result = formatter.format_output(all_token_states, all_raw_ocr, mode, cfg)

@@ -120,6 +120,16 @@ lexicon:
       enabled: false  # ToS prohibits scraping — do not enable
       priority: 0
       era: modern
+  stopwords: []  # optional per-project additions to the built-in ~400-word list
+  stopword_phrases:
+    # Classical / Quranic formulae accepted verbatim as multi-token units.
+    # All phrases are normalized at load time; add raw Arabic here.
+    - "بسم الله"
+    - "الحمد لله"
+    - "صلى الله عليه وسلم"
+    - "رضي الله عنه"
+    - "عليه السلام"
+    - "رحمه الله"
   index:
     backend: sqlite
     path: data/lexicons/index.db
