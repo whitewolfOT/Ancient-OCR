@@ -87,21 +87,31 @@ lexicon:
       priority: 10
       era: classical
     lanes:
-      enabled: false
+      enabled: true          # Lane's Arabic-English Lexicon (public domain)
       priority: 9
       era: classical
+      path: data/lexicons/lanes/lexicon.sqlite
+      # Download: python scripts/download_lexicons.py --lanes
     lisan:
-      enabled: false
+      enabled: true          # Lisān al-ʿArab — via Shamela4 SQLite
       priority: 8
       era: classical
+      path: data/lexicons/shamela/
+      book_name: "لسان العرب"
+      # Download: see scripts/download_lexicons.py --help (manual 19 GB)
     taj:
-      enabled: false
+      enabled: true          # Tāj al-ʿArūs — via Shamela4 SQLite
       priority: 7
       era: classical
+      path: data/lexicons/shamela/
+      book_name: "تاج العروس"
+      # Same Shamela4 DB as lisan
     qamus:
-      enabled: false
+      enabled: true          # al-Qāmūs al-Muḥīṭ — LMF XML (CC BY-SA 4.0)
       priority: 6
       era: classical
+      path: data/lexicons/qamus/
+      # Download: python scripts/download_lexicons.py --qamus
     wordnet:
       enabled: false
       priority: 3

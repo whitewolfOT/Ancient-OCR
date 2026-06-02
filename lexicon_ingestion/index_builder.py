@@ -78,3 +78,31 @@ def ingest_source(source_name: str, config=None) -> int:
     global _index_singleton
     _index_singleton = None  # invalidate cache
     return saved
+
+
+def ingest_all_enabled(config=None) -> dict[str, int]:
+    """
+    Ingest every enabled source and return a {source_name: entry_count} map.
+
+    Sources whose data files are absent return 0 entries — they never crash.
+    Call this after downloading new lexicon data to rebuild the index.
+    """
+    from lexicon_ingestion.sources import enabled_sources
+
+    results: dict[str, int] = {}
+    for source in enabled_sources():
+        try:
+            count = ingest_source(source.name, config)
+            results[source.name] = count
+        except Exception as exc:
+            log.warning(f"ingest_all_enabled: source '{source.name}' failed: {exc}")
+            results[source.name] = 0
+
+    # Rebuild the singleton index with all freshly ingested data
+    global _index_singleton
+    _index_singleton = build_index(config)
+    log.info(
+        f"ingest_all_enabled complete: "
+        + ", ".join(f"{k}={v}" for k, v in results.items())
+    )
+    return results

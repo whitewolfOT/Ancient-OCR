@@ -15,6 +15,7 @@ class SourceConfig:
     path: str | None
     parser_adapter: str
     domain: str | None = None
+    book_name: str | None = None   # for Shamela: Arabic book name to locate in the DB
 
 
 SOURCES: list[SourceConfig] = [
@@ -29,39 +30,41 @@ SOURCES: list[SourceConfig] = [
     ),
     SourceConfig(
         name="lanes",
-        enabled=False,
+        enabled=True,
         priority=9,
         era="classical",
         license="public_domain",
-        path="data/lexicons/lanes/",
-        parser_adapter="lanes",
+        path="data/lexicons/lanes/lexicon.sqlite",
+        parser_adapter="lanes_sqlite",
     ),
     SourceConfig(
         name="lisan",
-        enabled=False,
+        enabled=True,
         priority=8,
         era="classical",
         license="openiti",
-        path="data/lexicons/lisan/",
-        parser_adapter="openiti",
+        path="data/lexicons/shamela/",
+        parser_adapter="shamela_sqlite",
+        book_name="لسان العرب",
     ),
     SourceConfig(
         name="taj",
-        enabled=False,
+        enabled=True,
         priority=7,
         era="classical",
         license="openiti",
-        path="data/lexicons/taj/",
-        parser_adapter="openiti",
+        path="data/lexicons/shamela/",
+        parser_adapter="shamela_sqlite",
+        book_name="تاج العروس",
     ),
     SourceConfig(
         name="qamus",
-        enabled=False,
+        enabled=True,
         priority=6,
         era="classical",
-        license="openiti",
+        license="cc_by_sa_4",
         path="data/lexicons/qamus/",
-        parser_adapter="openiti",
+        parser_adapter="qamus_lmf",
     ),
     SourceConfig(
         name="wordnet",
