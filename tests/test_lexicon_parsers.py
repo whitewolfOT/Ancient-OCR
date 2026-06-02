@@ -161,6 +161,8 @@ class TestLanesXml:
         assert _arabtex_to_arabic("A_") == "آ"
         assert _arabtex_to_arabic("w^") == "ؤ"
         assert _arabtex_to_arabic("y^") == "ئ"
+        # mixed: k + A^ (two consonants, not empty)
+        assert _arabtex_to_arabic("kA^") == "كأ"
 
     def test_arabtex_consonant_mapping(self, tmp_path):
         from lexicon_ingestion.parser import _arabtex_to_arabic

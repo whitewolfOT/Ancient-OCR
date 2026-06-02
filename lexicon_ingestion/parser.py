@@ -231,7 +231,7 @@ def _parse_qamus_lmf(source: SourceConfig) -> list[LexiconEntry]:
         )
         return []
 
-    xml_files = sorted(base.glob("*.xml")) + sorted(base.glob("**/*.xml"))
+    xml_files = sorted(dict.fromkeys(base.glob("**/*.xml")))
     if not xml_files:
         log.warning(f"qamus: no XML files found in {base}")
         return []
