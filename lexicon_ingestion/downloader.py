@@ -75,104 +75,108 @@ def _count_entries(db_path: str) -> tuple[int, list[str]]:
 
 
 def fetch_lanes_raw(dest_dir: str) -> str | None:
-    """Download Lane's Lexicon SQLite ZIP from GitHub releases to *dest_dir*.
+    """Download TEI XML files from laneslexicon/lexicon_xml to dest_dir.
 
-    Returns the path to the extracted ``lexicon.sqlite``, or None on failure.
+    Uses GitHub's archive API to get the full repo ZIP (no auth required
+    for public repos).  Returns dest_dir containing the extracted .xml files,
+    or None on failure.
     """
     try:
         import requests
     except ImportError:
-        log.error("fetch_lanes_raw: 'requests' package not installed")
-        return None
+        log.error("fetch_lanes_raw: 'requests' not installed"); return None
 
     dest = Path(dest_dir)
     dest.mkdir(parents=True, exist_ok=True)
-    sqlite_path = dest / "lexicon.sqlite"
-    if sqlite_path.exists():
-        log.info(f"fetch_lanes_raw: already present at {sqlite_path}")
-        return str(sqlite_path)
+    xml_files = list(dest.glob("*.xml"))
+    if xml_files:
+        log.info(f"fetch_lanes_raw: {len(xml_files)} XML files already present at {dest}")
+        return str(dest)
 
-    # GitHub releases API — latest release asset
-    api_url = "https://api.github.com/repos/laneslexicon/LexiconDatabase/releases/latest"
+    # GitHub archive API — no auth required for public repos; follows redirect
+    archive_url = "https://api.github.com/repos/laneslexicon/lexicon_xml/zipball/HEAD"
+    zip_dest = dest / "lexicon_xml_archive.zip"
     try:
-        resp = requests.get(api_url, timeout=30,
-                            headers={"Accept": "application/vnd.github+json"})
-        resp.raise_for_status()
-        assets = resp.json().get("assets", [])
-        zip_url = next(
-            (a["browser_download_url"] for a in assets if a["name"].endswith(".zip")),
-            None,
-        )
-        if zip_url is None:
-            log.error("fetch_lanes_raw: no ZIP asset found in latest release")
-            return None
-    except Exception as exc:
-        log.error(f"fetch_lanes_raw: GitHub API error: {exc}")
-        return None
-
-    zip_dest = dest / "lanes_release.zip"
-    try:
-        with requests.get(zip_url, stream=True, timeout=120) as r:
+        with requests.get(
+            archive_url, stream=True, timeout=120,
+            headers={"Accept": "application/vnd.github+json"},
+            allow_redirects=True,
+        ) as r:
             r.raise_for_status()
             with open(zip_dest, "wb") as f:
                 for chunk in r.iter_content(chunk_size=65536):
                     f.write(chunk)
     except Exception as exc:
-        log.error(f"fetch_lanes_raw: download failed: {exc}")
+        log.error(f"fetch_lanes_raw: GitHub archive download failed: {exc}")
         return None
 
     try:
         with zipfile.ZipFile(zip_dest) as zf:
-            for name in zf.namelist():
-                if name.endswith("lexicon.sqlite") or name.endswith("LexiconDatabase.sqlite"):
-                    zf.extract(name, dest)
-                    extracted = dest / name
-                    extracted.rename(sqlite_path)
-                    log.info(f"fetch_lanes_raw: extracted to {sqlite_path}")
-                    return str(sqlite_path)
-            # Fallback: look for any .sqlite inside nested ZIPs
-            for name in zf.namelist():
-                if name.endswith(".zip"):
-                    inner_bytes = zf.read(name)
-                    import io
-                    with zipfile.ZipFile(io.BytesIO(inner_bytes)) as inner:
-                        for iname in inner.namelist():
-                            if iname.endswith(".sqlite"):
-                                inner.extract(iname, dest)
-                                (dest / iname).rename(sqlite_path)
-                                log.info(f"fetch_lanes_raw: extracted inner {iname}")
-                                return str(sqlite_path)
+            xml_names = [n for n in zf.namelist() if n.endswith(".xml")]
+            if not xml_names:
+                log.error("fetch_lanes_raw: no .xml files in archive")
+                return None
+            for name in xml_names:
+                zf.extract(name, dest)
+        # Flatten nested dirs — repo ZIP nests under laneslexicon-lexicon_xml-<sha>/
+        for xf in list(dest.glob("**/*.xml")):
+            if xf.parent != dest:
+                xf.rename(dest / xf.name)
+        for d in sorted(dest.glob("*/"), reverse=True):
+            try:
+                d.rmdir()
+            except OSError:
+                pass
+        zip_dest.unlink(missing_ok=True)
+        xml_files = list(dest.glob("*.xml"))
+        log.info(f"fetch_lanes_raw: extracted {len(xml_files)} TEI XML files to {dest}")
+        return str(dest) if xml_files else None
     except Exception as exc:
         log.error(f"fetch_lanes_raw: extraction failed: {exc}")
-
-    log.error("fetch_lanes_raw: could not locate .sqlite in release ZIP")
-    return None
+        return None
 
 
 def fetch_qamus_raw(dest_dir: str) -> str | None:
-    """Download al-Qāmūs LMF XML ZIP from CLARIN to *dest_dir*.
+    """Attempt to download al-Qāmūs al-Muḥīṭ LMF XML from CLARIN.
 
-    Returns the directory containing extracted XML files, or None on failure.
+    NOTE: The CLARIN distribution URL returns HTTP 403 from most network
+    environments (confirmed by probe).  If the probe below fails, download
+    the LMF ZIP manually from:
+
+        https://clarin.eurac.edu/repository/handle/20.500.12124/23
+
+    and extract the .xml files into dest_dir.
     """
     try:
         import requests
     except ImportError:
-        log.error("fetch_qamus_raw: 'requests' package not installed")
-        return None
+        log.error("fetch_qamus_raw: 'requests' not installed"); return None
 
     dest = Path(dest_dir)
     dest.mkdir(parents=True, exist_ok=True)
+    if list(dest.glob("*.xml")):
+        log.info("fetch_qamus_raw: XML files already present"); return str(dest)
 
-    xml_files = list(dest.glob("*.xml"))
-    if xml_files:
-        log.info(f"fetch_qamus_raw: {len(xml_files)} XML files already present")
-        return str(dest)
-
-    # CLARIN ILC4CLARIN LMF distribution
     clarin_url = (
         "https://clarin.eurac.edu/repository/xmlui/bitstream/handle/"
         "20.500.12124/23/AlQamusAlMuhit-LMF.zip"
     )
+
+    # Probe before committing to a full download — URL frequently 403s
+    try:
+        probe = requests.head(clarin_url, timeout=10, allow_redirects=True)
+        if probe.status_code == 403:
+            log.error(
+                "fetch_qamus_raw: CLARIN URL returned 403 Forbidden. "
+                "Download manually from "
+                "https://clarin.eurac.edu/repository/handle/20.500.12124/23 "
+                f"and extract XML files into {dest}"
+            )
+            return None
+        probe.raise_for_status()
+    except Exception as exc:
+        log.error(f"fetch_qamus_raw: URL probe failed: {exc}"); return None
+
     zip_dest = dest / "qamus_lmf.zip"
     try:
         with requests.get(clarin_url, stream=True, timeout=120) as r:
@@ -181,10 +185,7 @@ def fetch_qamus_raw(dest_dir: str) -> str | None:
                 for chunk in r.iter_content(chunk_size=65536):
                     f.write(chunk)
     except Exception as exc:
-        log.error(f"fetch_qamus_raw: download failed ({exc}). "
-                  "Download manually from CLARIN and place XML files in "
-                  f"{dest}")
-        return None
+        log.error(f"fetch_qamus_raw: download failed: {exc}"); return None
 
     try:
         with zipfile.ZipFile(zip_dest) as zf:
@@ -192,15 +193,14 @@ def fetch_qamus_raw(dest_dir: str) -> str | None:
                 if name.endswith(".xml"):
                     zf.extract(name, dest)
         xml_files = list(dest.glob("**/*.xml"))
-        # Flatten: move all XMLs to dest root for consistent paths
         for xf in xml_files:
             if xf.parent != dest:
                 xf.rename(dest / xf.name)
+        zip_dest.unlink(missing_ok=True)
         log.info(f"fetch_qamus_raw: extracted {len(xml_files)} XML files to {dest}")
-        return str(dest)
+        return str(dest) if xml_files else None
     except Exception as exc:
-        log.error(f"fetch_qamus_raw: extraction failed: {exc}")
-        return None
+        log.error(f"fetch_qamus_raw: extraction failed: {exc}"); return None
 
 
 def build_lexicons_db(
