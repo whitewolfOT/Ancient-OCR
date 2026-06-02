@@ -7,9 +7,6 @@ from utils.logging import get_logger
 
 log = get_logger(__name__)
 
-_ACCEPT_THRESHOLD_DEFAULT = 0.90
-
-
 def _trigrams(text: str) -> set[str]:
     return {text[i:i + 3] for i in range(len(text) - 2)} if len(text) >= 3 else set()
 
@@ -30,15 +27,16 @@ def query(
     word: str,
     context: list[str] | None = None,
     config=None,
-    ocr_confidence: float = 0.0,
 ) -> list[LexiconEntry]:
     """Look up *word* in all enabled lexicon sources.
 
-    Four-tier gate:
+    Three-tier gate:
       Tier 1 — stopword             → return [] immediately
       Tier 2 — persistent cache hit → return cached entries
-      Tier 3 — OCR confidence high  → return [] immediately
       Tier 4 — full resolution      → exact → normalized → root → trigram+Levenshtein
+
+    Tier 3 (OCR confidence bypass) lives in main.py, not here — [] would be
+    ambiguous between "confident skip" and "genuinely not found."
 
     Returns list[LexiconEntry] ordered by priority desc.  Always returns [].
     """
@@ -60,17 +58,6 @@ def query(
     if cached is not None:
         log.debug(f"query tier=2 cache_hit word={word!r}")
         return cached
-
-    # ── Tier 3: high OCR confidence ───────────────────────────────────────────
-    _threshold = _ACCEPT_THRESHOLD_DEFAULT
-    if config is not None:
-        try:
-            _threshold = config.decision.accept
-        except AttributeError:
-            pass
-    if ocr_confidence >= _threshold:
-        log.debug(f"query tier=3 ocr_confident word={word!r} conf={ocr_confidence:.2f}")
-        return []
 
     # ── Tier 4: full resolution ───────────────────────────────────────────────
     from lexicon_ingestion.index_builder import get_index
