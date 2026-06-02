@@ -253,9 +253,9 @@ def build_lexicons_db(
 
         for source in active_sources:
             # Download raw data for sources that support it
-            if source.parser_adapter == "lanes_sqlite":
-                lanes_dir = str(Path(source.path).parent)
-                if not Path(source.path).exists():
+            if source.parser_adapter == "lanes_xml":
+                lanes_dir = str(Path(source.path))
+                if not list(Path(lanes_dir).glob("*.xml")):
                     fetch_lanes_raw(lanes_dir)
             elif source.parser_adapter == "qamus_lmf":
                 qamus_dir = Path(source.path)

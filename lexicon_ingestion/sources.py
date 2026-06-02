@@ -34,8 +34,8 @@ SOURCES: list[SourceConfig] = [
         priority=9,
         era="classical",
         license="public_domain",
-        path="data/lexicons/lanes/lexicon.sqlite",
-        parser_adapter="lanes_sqlite",
+        path="data/lexicons/lanes/",
+        parser_adapter="lanes_xml",
     ),
     SourceConfig(
         name="lisan",

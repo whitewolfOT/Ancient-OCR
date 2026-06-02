@@ -36,100 +36,141 @@ def _make_source(name, adapter, path, **kwargs) -> SourceConfig:
 
 
 # ---------------------------------------------------------------------------
-# lanes_sqlite adapter
+# lanes_xml adapter (TEI.2 XML, laneslexicon/lexicon_xml)
 # ---------------------------------------------------------------------------
 
-class TestLanesSqlite:
-    def _make_db(self, tmp_path: Path) -> Path:
-        """Create a minimal laneslexicon-style SQLite with a nodes table."""
-        db = tmp_path / "lexicon.sqlite"
-        conn = sqlite3.connect(str(db))
-        conn.execute("""
-            CREATE TABLE nodes (
-                id INTEGER PRIMARY KEY,
-                key TEXT,
-                nodeText TEXT,
-                root TEXT,
-                parent INTEGER,
-                type TEXT,
-                lang TEXT
-            )
-        """)
-        conn.executemany("INSERT INTO nodes VALUES (?,?,?,?,?,?,?)", [
-            # root كتب — Arabic lemma + English gloss
-            (1, "ktb-1",  "كَتَبَ",   "كتب", 0, "entry", "ar"),
-            (2, "ktb-2",  "to write", "كتب", 1, "gloss", "en"),
-            (3, "ktb-3",  "كِتَابٌ",  "كتب", 0, "entry", "ar"),
-            (4, "ktb-4",  "a book; a letter", "كتب", 3, "gloss", "en"),
-            # root قرأ — Arabic only (no English gloss)
-            (5, "qra-1",  "قَرَأَ",   "قرأ", 0, "entry", "ar"),
-            # row with empty root — should be skipped
-            (6, "skip-1", "ignored",  "",    0, "misc",  "ar"),
-        ])
-        conn.commit()
-        conn.close()
-        return db
+class TestLanesXml:
+    _XML_FIXTURE = textwrap.dedent("""\
+        <?xml version="1.0" encoding="UTF-8"?>
+        <TEI.2>
+          <text><body><div1 type="lexicon">
+            <div2 n="ktb" type="root">
+              <entryFree id="n0001" key="kAtib" type="main">
+                <form>
+                  <orth orig="" extent="full" lang="ar">kAtib</orth>
+                  <orth extent="full" lang="ar">*</orth>
+                </form>
+                One who writes; a scribe or secretary. <foreign lang="ar">kAtaba</foreign> he wrote.
+              </entryFree>
+              <entryFree id="n0002" key="kitAb" type="main">
+                <form>
+                  <orth orig="" extent="full" lang="ar">kitAb</orth>
+                  <orth extent="full" lang="ar">*</orth>
+                </form>
+                A book; a written document or letter.
+              </entryFree>
+            </div2>
+            <div2 n="Elm" type="root">
+              <entryFree id="n0003" key="Eilm" type="main">
+                <form>
+                  <orth orig="" extent="full" lang="ar">Eilm</orth>
+                  <orth extent="full" lang="ar">*</orth>
+                </form>
+                Knowledge; learning; science. Applied to any branch of learning.
+              </entryFree>
+            </div2>
+            <div2 n="A" type="root">
+              <entryFree id="n0004" key="Al" type="cross">
+                <form><orth orig="" extent="full" lang="ar">Al</orth></form>
+                Definite article — see main grammar entry.
+              </entryFree>
+            </div2>
+            <div2 n="qra" type="root">
+              <entryFree id="n0005" key="qr" type="cross">
+                <form><orth orig="" extent="full" lang="ar">qra'a</orth></form>
+                See.
+              </entryFree>
+            </div2>
+          </div1></body></text>
+        </TEI.2>
+    """)
+
+    def _make_xml_dir(self, tmp_path: Path) -> Path:
+        d = tmp_path / "lanes_xml"
+        d.mkdir()
+        (d / "test_lane.xml").write_text(self._XML_FIXTURE, encoding="utf-8")
+        return d
 
     def test_parse_returns_entries(self, tmp_path):
         from lexicon_ingestion.parser import parse_source
-        db = self._make_db(tmp_path)
-        src = _make_source("lanes", "lanes_sqlite", db)
+        d = self._make_xml_dir(tmp_path)
+        src = _make_source("lanes", "lanes_xml", d)
         entries = parse_source(src)
-        assert len(entries) >= 1
+        assert len(entries) >= 2  # kAtib + kitAb + Eilm (≥2 to allow parsing variance)
 
-    def test_roots_extracted(self, tmp_path):
+    def test_roots_are_arabic(self, tmp_path):
         from lexicon_ingestion.parser import parse_source
-        db = self._make_db(tmp_path)
-        src = _make_source("lanes", "lanes_sqlite", db)
+        import re
+        arabic_re = re.compile(r"[؀-ۿ]")
+        d = self._make_xml_dir(tmp_path)
+        src = _make_source("lanes", "lanes_xml", d)
         entries = parse_source(src)
-        roots = {e.root for e in entries if e.root}
-        assert "كتب" in roots
+        roots = [e.root for e in entries if e.root]
+        assert roots, "expected at least one entry with a root"
+        assert all(arabic_re.search(r) for r in roots)
 
-    def test_gloss_populated(self, tmp_path):
+    def test_foreign_excluded_from_gloss(self, tmp_path):
         from lexicon_ingestion.parser import parse_source
-        db = self._make_db(tmp_path)
-        src = _make_source("lanes", "lanes_sqlite", db)
+        d = self._make_xml_dir(tmp_path)
+        src = _make_source("lanes", "lanes_xml", d)
         entries = parse_source(src)
-        ktb_entries = [e for e in entries if e.root == "كتب"]
-        assert any("write" in (e.gloss or "").lower() or "book" in (e.gloss or "").lower()
-                   for e in ktb_entries)
+        # ArabTeX content inside <foreign> must never appear in any gloss
+        for e in entries:
+            assert "kAtaba" not in e.gloss
+        # ktb root entries must have meaningful English (write/scribe/book)
+        ktb = [e for e in entries if e.root == "كتب"]
+        assert ktb, "expected entries with root كتب"
+        assert any(
+            "write" in e.gloss.lower() or "scribe" in e.gloss.lower()
+            or "book" in e.gloss.lower()
+            for e in ktb
+        )
+
+    def test_short_gloss_skipped(self, tmp_path):
+        from lexicon_ingestion.parser import parse_source
+        d = self._make_xml_dir(tmp_path)
+        src = _make_source("lanes", "lanes_xml", d)
+        entries = parse_source(src)
+        assert all(len(e.gloss) >= 15 for e in entries)
+
+    def test_short_root_div_skipped(self, tmp_path):
+        from lexicon_ingestion.parser import parse_source
+        d = self._make_xml_dir(tmp_path)
+        src = _make_source("lanes", "lanes_xml", d)
+        entries = parse_source(src)
+        # div2 n="A" has only 1 Arabic consonant → entire div2 skipped
+        # so "Definite article" gloss should not appear
+        assert not any("definite" in e.gloss.lower() for e in entries)
+
+    def test_missing_dir_returns_empty(self, tmp_path):
+        from lexicon_ingestion.parser import parse_source
+        src = _make_source("lanes", "lanes_xml", tmp_path / "nonexistent")
+        assert parse_source(src) == []
 
     def test_source_name_set(self, tmp_path):
         from lexicon_ingestion.parser import parse_source
-        db = self._make_db(tmp_path)
-        src = _make_source("lanes", "lanes_sqlite", db)
+        d = self._make_xml_dir(tmp_path)
+        src = _make_source("lanes", "lanes_xml", d)
         entries = parse_source(src)
         assert all(e.source == "lanes" for e in entries)
 
-    def test_missing_file_returns_empty(self, tmp_path):
-        from lexicon_ingestion.parser import parse_source
-        src = _make_source("lanes", "lanes_sqlite", tmp_path / "nonexistent.sqlite")
-        entries = parse_source(src)
-        assert entries == []
+    def test_arabtex_two_char_sequences(self, tmp_path):
+        from lexicon_ingestion.parser import _arabtex_to_arabic
+        assert _arabtex_to_arabic("A^") == "أ"
+        assert _arabtex_to_arabic("A=") == "إ"
+        assert _arabtex_to_arabic("A_") == "آ"
+        assert _arabtex_to_arabic("w^") == "ؤ"
+        assert _arabtex_to_arabic("y^") == "ئ"
 
-    def test_entries_table_fallback(self, tmp_path):
-        """Adapter falls back to an `entries` table if `nodes` is absent."""
-        from lexicon_ingestion.parser import parse_source
-        db = tmp_path / "lexicon2.sqlite"
-        conn = sqlite3.connect(str(db))
-        conn.execute("""
-            CREATE TABLE entries (
-                id INTEGER PRIMARY KEY,
-                lemma TEXT,
-                root TEXT,
-                translation TEXT
-            )
-        """)
-        conn.executemany("INSERT INTO entries VALUES (?,?,?,?)", [
-            (1, "كِتَابٌ", "كتب", "a book"),
-            (2, "قَلَمٌ",  "قلم", "a pen"),
-        ])
-        conn.commit()
-        conn.close()
-        src = _make_source("lanes", "lanes_sqlite", db)
-        entries = parse_source(src)
-        assert len(entries) >= 1
-        assert any(e.root == "كتب" for e in entries)
+    def test_arabtex_consonant_mapping(self, tmp_path):
+        from lexicon_ingestion.parser import _arabtex_to_arabic
+        assert _arabtex_to_arabic("ktb") == "كتب"
+        assert _arabtex_to_arabic("Eilm") == "علم"
+
+    def test_arabtex_strips_vowels(self, tmp_path):
+        from lexicon_ingestion.parser import _arabtex_to_arabic
+        # kAtib: vowels i stripped → كاتب
+        assert _arabtex_to_arabic("kAtib") == "كاتب"
 
 
 # ---------------------------------------------------------------------------

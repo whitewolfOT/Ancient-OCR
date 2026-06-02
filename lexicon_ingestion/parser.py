@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from collections import defaultdict
 from pathlib import Path
 
 from confidence_engine.state import LexiconEntry
@@ -26,6 +25,45 @@ _ROOT_HEADER_RE = re.compile(
 )
 
 
+# ---------------------------------------------------------------------------
+# ArabTeX → Arabic Unicode
+# ---------------------------------------------------------------------------
+
+def _arabtex_to_arabic(s: str) -> str:
+    """Convert ArabTeX transliteration string to Arabic Unicode consonants."""
+    _TWO = {
+        "A^": "أ",  # أ
+        "A=": "إ",  # إ
+        "A_": "آ",  # آ
+        "w^": "ؤ",  # ؤ
+        "y^": "ئ",  # ئ
+    }
+    _ONE = {
+        "b": "ب", "t": "ت", "v": "ث", "j": "ج",
+        "H": "ح", "x": "خ", "d": "د", "*": "ذ",
+        "r": "ر", "z": "ز", "s": "س", "^": "ش",
+        "S": "ص", "D": "ض", "T": "ط", "Z": "ظ",
+        "E": "ع", "g": "غ", "f": "ف", "q": "ق",
+        "k": "ك", "l": "ل", "m": "م", "n": "ن",
+        "h": "ه", "w": "و", "y": "ي", "'": "ء",
+        "A": "ا", "Y": "ى",
+    }
+    _VOWELS = frozenset("aiuoNKF~")
+    out: list[str] = []
+    i = 0
+    while i < len(s):
+        two = s[i:i + 2]
+        if two in _TWO:
+            out.append(_TWO[two])
+            i += 2
+        elif s[i] in _ONE:
+            out.append(_ONE[s[i]])
+            i += 1
+        else:
+            i += 1  # vowel diacritic or unknown — strip
+    return "".join(out)
+
+
 class DisabledSourceError(Exception):
     pass
 
@@ -37,8 +75,8 @@ def parse_source(source: SourceConfig) -> list[LexiconEntry]:
         return _parse_fixture(source)
     if adapter == "almaany_disabled":
         return _parse_almaany_disabled(source)
-    if adapter == "lanes_sqlite":
-        return _parse_lanes_sqlite(source)
+    if adapter == "lanes_xml":
+        return _parse_lanes_xml(source)
     if adapter == "qamus_lmf":
         return _parse_qamus_lmf(source)
     if adapter == "shamela_sqlite":
@@ -77,128 +115,105 @@ def _parse_fixture(source: SourceConfig) -> list[LexiconEntry]:
 
 
 # ---------------------------------------------------------------------------
-# Lane's Lexicon — SQLite (laneslexicon/LexiconDatabase)
+# Lane's Lexicon — TEI.2 XML (laneslexicon/lexicon_xml)
 # ---------------------------------------------------------------------------
 
-def _parse_lanes_sqlite(source: SourceConfig) -> list[LexiconEntry]:
-    """Parse Lane's Arabic-English Lexicon from the laneslexicon SQLite database."""
-    path = Path(source.path)
-    if not path.exists():
+_LANES_SKIP_TAGS = frozenset({"form", "foreign", "pb"})
+
+
+def _lanes_english_gloss(entry_el) -> str:
+    """Collect English gloss text from entryFree, skipping form/foreign/pb content."""
+    parts: list[str] = []
+    if entry_el.text and entry_el.text.strip():
+        parts.append(entry_el.text.strip())
+
+    def _collect(el) -> None:
+        for child in el:
+            if child.tag not in _LANES_SKIP_TAGS:
+                if child.text and child.text.strip():
+                    parts.append(child.text.strip())
+                _collect(child)
+            if child.tail and child.tail.strip():
+                parts.append(child.tail.strip())
+
+    _collect(entry_el)
+    return " ".join(parts)
+
+
+def _parse_lanes_xml(source: SourceConfig) -> list[LexiconEntry]:
+    """Parse Lane's Arabic-English Lexicon from TEI.2 XML files (laneslexicon/lexicon_xml)."""
+    base = Path(source.path)
+    if not base.exists():
         log.warning(
-            f"lanes: SQLite not found at {path}. "
+            f"lanes: XML directory not found at {base}. "
             "Run: python scripts/download_lexicons.py --lanes"
         )
         return []
 
+    xml_files = sorted(base.glob("*.xml"))
+    if not xml_files:
+        log.warning(f"lanes: no XML files found in {base}")
+        return []
+
     entries: list[LexiconEntry] = []
-    try:
-        conn = sqlite3.connect(str(path))
-        conn.row_factory = sqlite3.Row
-        cur = conn.cursor()
+    for xml_path in xml_files:
+        try:
+            entries.extend(_parse_lanes_xml_file(xml_path, source))
+        except Exception as exc:
+            log.warning(f"lanes: error parsing {xml_path.name}: {exc}")
 
-        tables = {r[0] for r in cur.execute(
-            "SELECT name FROM sqlite_master WHERE type='table'"
-        ).fetchall()}
-        log.debug(f"lanes SQLite tables={tables}")
-
-        if "nodes" in tables:
-            entries = _lanes_from_nodes(cur, source)
-        elif "entries" in tables:
-            entries = _lanes_from_entries_table(cur, source)
-        else:
-            log.warning(f"lanes: unrecognised SQLite schema tables={tables}")
-
-        conn.close()
-    except Exception as exc:
-        log.warning(f"lanes parse error: {exc}")
-
-    log.info(f"lanes: parsed entries={len(entries)}")
+    log.info(f"lanes: parsed entries={len(entries)} from {len(xml_files)} file(s)")
     return entries
 
 
-def _lanes_from_nodes(cur: sqlite3.Cursor, source: SourceConfig) -> list[LexiconEntry]:
-    """Extract from the `nodes` tree table used by the laneslexicon desktop app."""
-    # Discover available columns
-    cols = {r[1] for r in cur.execute("PRAGMA table_info(nodes)").fetchall()}
-    has_lang = "lang" in cols
-    has_type = "type" in cols
+def _parse_lanes_xml_file(xml_path: Path, source: SourceConfig) -> list[LexiconEntry]:
+    import xml.etree.ElementTree as ET
 
-    select = "key, nodeText, root"
-    if has_lang:
-        select += ", lang"
-    if has_type:
-        select += ", type"
+    tree = ET.parse(str(xml_path))
+    root_el = tree.getroot()
 
-    rows = cur.execute(
-        f"SELECT {select} FROM nodes WHERE root IS NOT NULL AND root != ''"
-    ).fetchall()
-
-    by_root: dict[str, dict] = defaultdict(lambda: {"ar": [], "en": []})
-    for row in rows:
-        row_dict = dict(row)
-        text = (row_dict.get("nodeText") or "").strip()
-        root = (row_dict.get("root") or "").strip()
-        lang = (row_dict.get("lang") or "").lower()
-        if not text or not root:
-            continue
-        if lang == "ar" or (not lang and _ARABIC_RE.search(text)):
-            by_root[root]["ar"].append(text)
-        elif lang == "en" or (not lang and not _ARABIC_RE.search(text) and len(text) > 3):
-            by_root[root]["en"].append(text)
-
-    return _lanes_build_entries(by_root, source)
-
-
-def _lanes_from_entries_table(cur: sqlite3.Cursor, source: SourceConfig) -> list[LexiconEntry]:
-    """Fallback for alternate schema with an `entries` table."""
-    cols = {r[1] for r in cur.execute("PRAGMA table_info(entries)").fetchall()}
-    text_col = next((c for c in ("text", "arabic", "lemma", "word") if c in cols), None)
-    gloss_col = next((c for c in ("translation", "gloss", "meaning", "english") if c in cols), None)
-    root_col = next((c for c in ("root", "triliteral", "base") if c in cols), None)
-
-    if not text_col:
-        log.warning("lanes: entries table has no recognisable text column")
-        return []
-
-    rows = cur.execute(f"SELECT * FROM entries").fetchall()
-    by_root: dict[str, dict] = defaultdict(lambda: {"ar": [], "en": []})
-    for row in rows:
-        d = dict(row)
-        text = (d.get(text_col) or "").strip()
-        gloss = (d.get(gloss_col) or "") if gloss_col else ""
-        root = (d.get(root_col) or "") if root_col else ""
-        if not text:
-            continue
-        by_root[root]["ar"].append(text)
-        if gloss:
-            by_root[root]["en"].append(gloss.strip())
-
-    return _lanes_build_entries(by_root, source)
-
-
-def _lanes_build_entries(
-    by_root: dict[str, dict], source: SourceConfig
-) -> list[LexiconEntry]:
     entries: list[LexiconEntry] = []
-    for root, data in by_root.items():
-        ar_forms = data["ar"]
-        en_glosses = data["en"]
-        if not ar_forms:
-            continue
-        lemma = ar_forms[0]
-        gloss = "; ".join(en_glosses[:3]) if en_glosses else lemma
-        examples = [f for f in ar_forms[1:6] if f != lemma]
-        entries.append(LexiconEntry(
-            lemma=lemma,
-            root=root if root else None,
-            pattern=None,
-            gloss=gloss,
-            source=source.name,
-            era=source.era,
-            domain=None,
-            examples=examples,
-            priority=source.priority,
-        ))
+
+    for div2 in root_el.iter("div2"):
+        raw_root = div2.get("n", "")
+        root_ar = _arabtex_to_arabic(raw_root)
+        if len(_ARABIC_RE.findall(root_ar)) < 2:
+            continue  # skip roots with fewer than 2 Arabic consonants
+
+        for entry_el in div2.findall("entryFree"):
+            # Lemma: first <orth orig="" lang="ar"> in <form> (contains ArabTeX)
+            lemma_ar = ""
+            form_el = entry_el.find("form")
+            if form_el is not None:
+                for orth in form_el.findall("orth"):
+                    if orth.get("lang") == "ar" and orth.get("orig") == "":
+                        raw = (orth.text or "").strip()
+                        if raw and raw != "*":
+                            lemma_ar = _arabtex_to_arabic(raw)
+                            break
+
+            if not lemma_ar:
+                lemma_ar = _arabtex_to_arabic(entry_el.get("key", ""))
+
+            if not lemma_ar or not _ARABIC_RE.search(lemma_ar):
+                continue
+
+            gloss = _lanes_english_gloss(entry_el).strip()[:600]
+            if len(gloss) < 15:
+                continue  # cross-reference only — no substantive definition
+
+            entries.append(LexiconEntry(
+                lemma=lemma_ar,
+                root=root_ar,
+                pattern=None,
+                gloss=gloss,
+                source=source.name,
+                era=source.era,
+                domain=None,
+                examples=[],
+                priority=source.priority,
+            ))
+
     return entries
 
 
