@@ -23,7 +23,7 @@ class Candidate(BaseModel):
     text: str
     reason: str                  # "spelling_variant"|"normalization"|"root_alt"|"morph_alt"|"identity"
     lexicon_entries: list[LexiconEntry] = []
-    features: dict[str, float] = {}  # lexicon_score, morph_score, ocr_score, context_score
+    features: dict[str, float | str] = {}  # numeric scores + string labels (e.g. morph_evidence)
     score: float | None = None
 
 

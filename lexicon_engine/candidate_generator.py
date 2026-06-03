@@ -70,16 +70,30 @@ def generate(token, morph_result: dict | None, config=None) -> list[Candidate]:
             except Exception:
                 pass
 
-    # 5. Spelling variants (edit-distance-1 neighbours)
+    # 5. Spelling variants — trigram-narrow first, then similarity on the reduced set.
+    # Full O(N) scan over 40k+ lemmas is unusably slow; skip entirely if no
+    # trigram neighbors exist (they will not have useful spelling variants anyway).
     try:
+        max_sv = 5
+        if config is not None:
+            try:
+                max_sv = config.lexicon.max_spelling_variants
+            except AttributeError:
+                pass
+        from lexicon_engine.query_engine import _trigram_narrow
         idx = get_index(config)
-        for lemma in idx.all_lemmas:
-            if lemma == word:
-                continue
-            sim = similarity(word, lemma)
-            if sim >= 0.85:
-                sv_entries = query(lemma, config=config)
-                _add(lemma, "spelling_variant", sv_entries)
+        narrowed = _trigram_narrow(word, idx.all_lemmas, max_cands=200)
+        if narrowed:
+            sv_count = 0
+            for lemma in narrowed:
+                if lemma == word:
+                    continue
+                if similarity(word, lemma) >= 0.85:
+                    sv_entries = query(lemma, config=config)
+                    _add(lemma, "spelling_variant", sv_entries)
+                    sv_count += 1
+                    if sv_count >= max_sv:
+                        break
     except Exception as exc:
         log.debug(f"spelling variant search failed: {exc}")
 

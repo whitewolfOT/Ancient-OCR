@@ -131,6 +131,7 @@ lexicon:
     - "رضي الله عنه"
     - "عليه السلام"
     - "رحمه الله"
+  max_spelling_variants: 5   # per token; trigram-narrowed before similarity check
   index:
     backend: sqlite
     approximate_match_threshold: 0.8

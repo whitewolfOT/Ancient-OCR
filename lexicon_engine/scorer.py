@@ -12,15 +12,17 @@ def score(
     candidate: Candidate,
     context_pair: tuple[list[str], list[str]],
     ocr_conf: float,
+    morph_result=None,
     config=None,
 ) -> Candidate:
     """Fill candidate.features and set candidate.score.
 
     Features:
-      ocr_score     — from the original WordToken confidence
-      lexicon_score — based on matching entries (priority + era)
-      morph_score   — 1.0 if morphology confirms, 0.5 if no info
-      context_score — from context_scorer
+      ocr_score      — from the original WordToken confidence
+      lexicon_score  — based on matching entries (priority + era)
+      morph_score    — root agreement between morphology output and lexicon entries
+      morph_evidence — "confirmed" | "partial" | "none" (human-readable in debug)
+      context_score  — from context_scorer
 
     Returns a new Candidate with features and score set.
     """
@@ -34,8 +36,8 @@ def score(
     # lexicon_score: weighted sum over matching entries
     lexicon_s = _lexicon_score(candidate)
 
-    # morph_score: heuristic based on reason code
-    morph_s = _morph_score(candidate)
+    # morph_score: root agreement between morphology result and lexicon entries
+    morph_s, morph_evidence = _morph_score(candidate, morph_result)
 
     # context_score: from context_scorer
     ctx_s = ctx_score(candidate.text, left_ctx, right_ctx, config)
@@ -44,6 +46,7 @@ def score(
         "ocr_score": round(ocr_s, 4),
         "lexicon_score": round(lexicon_s, 4),
         "morph_score": round(morph_s, 4),
+        "morph_evidence": morph_evidence,
         "context_score": round(ctx_s, 4),
     }
 
@@ -64,7 +67,8 @@ def score(
 
     log.debug(
         f"score text={candidate.text!r} reason={candidate.reason} "
-        f"lex={lexicon_s:.2f} morph={morph_s:.2f} ctx={ctx_s:.2f} total={composite:.3f}"
+        f"lex={lexicon_s:.2f} morph={morph_s:.2f} ({morph_evidence}) "
+        f"ctx={ctx_s:.2f} total={composite:.3f}"
     )
 
     return Candidate(
@@ -90,12 +94,39 @@ def _lexicon_score(candidate: Candidate) -> float:
     return best
 
 
-def _morph_score(candidate: Candidate) -> float:
-    reason_scores = {
-        "identity": 0.8,          # word is unchanged — plausible
-        "normalization": 0.75,     # normalization variant — very plausible
-        "morph_alt": 0.70,         # morphology-informed — supported
-        "root_alt": 0.60,          # same root — weaker support
-        "spelling_variant": 0.55,  # close spelling — weakest
-    }
-    return reason_scores.get(candidate.reason, 0.5)
+def _morph_score(candidate: Candidate, morph_result) -> tuple[float, str]:
+    """Return (morph_score, morph_evidence) based on root agreement.
+
+    Scores:
+      0.5–1.0  root confirmed by morphology  → "confirmed"
+      0.4      identity candidate, no confirmation → "partial"
+      0.3      morphology available but no root agreement (non-identity) → "none"
+      0.3      no morphological information available → "none"
+    """
+    if morph_result is None:
+        return 0.3, "none"
+
+    # Build {root: confidence} from either result shape:
+    # rule-based → {"root_candidates": [RootCandidate(root, confidence, method), ...]}
+    # CAMeL      → {"root": "كتب", "lemma": ..., ...}
+    morph_root_conf: dict[str, float] = {}
+    for rc in morph_result.get("root_candidates", []):
+        morph_root_conf[rc.root] = max(morph_root_conf.get(rc.root, 0.0), rc.confidence)
+    camel_root = morph_result.get("root")
+    if camel_root and camel_root not in morph_root_conf:
+        morph_root_conf[camel_root] = 0.9  # CAMeL analysis is more reliable than rule-based
+
+    if not morph_root_conf:
+        return 0.3, "none"
+
+    candidate_roots = {e.root for e in candidate.lexicon_entries if e.root}
+    matching = candidate_roots & morph_root_conf.keys()
+
+    if matching:
+        best_conf = max(morph_root_conf[r] for r in matching)
+        return 0.5 + 0.5 * best_conf, "confirmed"
+
+    if candidate.reason == "identity":
+        return 0.4, "partial"
+
+    return 0.2, "none"

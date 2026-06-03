@@ -215,7 +215,7 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
             left_ctx = []
             right_ctx = []  # TODO: wire left/right context when Arabic phrase corpus is available — bigram model currently unigram-only
             scored = [
-                scorer_mod.score(c, (left_ctx, right_ctx), word_token.confidence, cfg)
+                scorer_mod.score(c, (left_ctx, right_ctx), word_token.confidence, morph_result, cfg)
                 for c in candidates
             ]
             ranked = ranker_mod.rank(scored)
