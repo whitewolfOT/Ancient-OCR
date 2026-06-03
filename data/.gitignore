@@ -4,6 +4,9 @@ lexicons/lisan/
 lexicons/taj/
 lexicons/qamus/
 lexicons/wordnet/
+lexicons/khorsi/
+lexicons/quranic_corpus/
+lexicons/shamela/
 lexicons/index.db
 feedback/feedback.db
 review/
