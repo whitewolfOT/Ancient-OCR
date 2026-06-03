@@ -43,6 +43,7 @@ def format_output(
             "mode": "annotated",
             "word_count": word_count,
             "page_count": page_count,
+            "review_queue": _review_summary(token_states),
         })
         return base
 
@@ -52,7 +53,37 @@ def format_output(
             "mode": "debug",
             "word_count": word_count,
             "page_count": page_count,
+            "review_queue": _review_summary(token_states),
         })
         return base
 
     raise ValueError(f"Unknown mode '{mode}'. Must be clean | annotated | debug.")
+
+
+def _review_summary(token_states: list) -> dict:
+    """Build a text-level review summary (no image crops) for embedding in annotated/debug output."""
+    flagged = [
+        ts for ts in token_states
+        if ts.decision in ("uncertain", "review_required")
+    ]
+    by_decision: dict[str, int] = {"uncertain": 0, "review_required": 0}
+    for ts in flagged:
+        by_decision[ts.decision] = by_decision.get(ts.decision, 0) + 1
+
+    flagged_tokens = [
+        {
+            "original": ts.original,
+            "selected": ts.selected,
+            "confidence": ts.confidence,
+            "decision": ts.decision,
+            "reason_code": ts.reason_code,
+            "sources": ts.sources,
+        }
+        for ts in flagged
+    ]
+
+    return {
+        "total": len(flagged),
+        "by_decision": by_decision,
+        "flagged_tokens": flagged_tokens,
+    }

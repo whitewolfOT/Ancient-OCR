@@ -35,8 +35,11 @@ def test_paddle_is_available_false_when_not_installed():
 
 
 def test_tesseract_is_available_false_when_not_installed():
-    from ocr_engine.tesseract_backend import TesseractBackend
-    assert TesseractBackend.is_available() is False
+    import ocr_engine.tesseract_backend as tess_mod
+    with patch.object(tess_mod, "_tesseract_available", False), \
+         patch.object(tess_mod, "_tesseract_ara_available", False):
+        from ocr_engine.tesseract_backend import TesseractBackend
+        assert TesseractBackend.is_available() is False
 
 
 def test_trocr_is_available_false_when_not_installed():
