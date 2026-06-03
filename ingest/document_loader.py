@@ -104,14 +104,24 @@ def _load_image(path: Path, dpi: int) -> list[PageImage]:
         ) from exc
 
     img = Image.open(path).convert("RGB")
+
+    # Read actual DPI from EXIF/image metadata; fall back to config value.
+    actual_dpi = dpi
+    try:
+        info_dpi = img.info.get("dpi")
+        if info_dpi and len(info_dpi) >= 2 and info_dpi[0] > 0 and info_dpi[1] > 0:
+            actual_dpi = int(min(info_dpi[0], info_dpi[1]))
+    except Exception:
+        pass
+
     rgb = np.array(img, dtype=np.uint8)
     bgr = rgb[:, :, ::-1].copy()
 
-    log.debug(f"loaded image path={path} shape={bgr.shape}")
+    log.debug(f"loaded image path={path} shape={bgr.shape} dpi={actual_dpi}")
     return [PageImage(
         image=bgr,
         page_index=0,
-        dpi=dpi,
+        dpi=actual_dpi,
         source_path=str(path),
         page_count=1,
     )]

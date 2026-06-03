@@ -64,6 +64,7 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
     region_cropper = _require("ingest.region_cropper")
     layout_detection = _require("preprocessing.layout_detection")
     ensemble = _require("ocr_engine.ensemble")
+    token_filter = _require("preprocessing.token_filter")
     noise_filter = _require("normalization.noise_filter")
     arabic_normalizer = _require("normalization.arabic_normalizer")
     stopword_filter = _require("normalization.stopword_filter")
@@ -92,7 +93,9 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
         page_index = page["page_index"]
 
         # Stage 2: preprocess
-        processed_image, preprocess_meta = preprocessing.preprocess_image(image, cfg)
+        processed_image, preprocess_meta = preprocessing.preprocess_image(
+            image, cfg, source_dpi=page.get("dpi")
+        )
         log.debug(f"preprocess page={page_index} steps={list(preprocess_meta.keys())}")
 
         # Stage 3: layout detection + region cropping
@@ -111,8 +114,26 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
         )
         all_raw_ocr.append(page_ocr)
 
+        # Pre-filter: discard glyph fragments and non-Arabic noise before scoring
+        words_raw = list(page_ocr.words)
+        words, discarded = token_filter.filter_noise_tokens(words_raw)
+        for dw in discarded:
+            all_token_states.append(state_mod.TokenState(
+                original=dw.text,
+                normalized=dw.text,
+                normalization_log=[],
+                candidates=[],
+                selected="",
+                confidence=dw.confidence,
+                sources=[],
+                decision="reject",
+                reason_code="noise_token",
+                bbox=dw.bbox,
+                page_index=page_index,
+            ))
+        log.debug(f"token_filter page={page_index} kept={len(words)} discarded={len(discarded)}")
+
         # Stages 5–8: per-token processing (index-based for phrase lookahead)
-        words = list(page_ocr.words)
         i = 0
         while i < len(words):
             word_token = words[i]

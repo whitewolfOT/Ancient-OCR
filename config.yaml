@@ -6,6 +6,7 @@ paths:
 
 preprocessing:
   dpi: 300
+  target_dpi: 300   # upscale input images below this DPI before processing
   denoise:
     enabled: true
     kernel_size: 3

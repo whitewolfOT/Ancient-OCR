@@ -9,13 +9,24 @@ from utils.logging import get_logger
 log = get_logger(__name__)
 
 
-def preprocess_image(image: np.ndarray, config=None) -> tuple[np.ndarray, dict]:
+def preprocess_image(
+    image: np.ndarray,
+    config=None,
+    source_dpi: int | None = None,
+) -> tuple[np.ndarray, dict]:
     """Run enabled preprocessing steps in canonical order.
 
-    Steps: grayscale → denoise → CLAHE → deskew → adaptive binarization
+    Steps: dpi_normalize → denoise → CLAHE → deskew → adaptive binarization
 
     Each step is wrapped in try/except. On failure: log the exception, keep
     the pre-step image, record status as 'failed' — never propagate.
+
+    Args:
+        image:      Input BGR image array.
+        config:     Pipeline config object (reads preprocessing.* keys).
+        source_dpi: Actual DPI of the source image. When below target_dpi,
+                    the image is upscaled using INTER_CUBIC before any other
+                    processing. Pass None to skip DPI normalization.
 
     Returns:
         (processed_image, metadata)  where metadata keys are step names and
@@ -23,6 +34,23 @@ def preprocess_image(image: np.ndarray, config=None) -> tuple[np.ndarray, dict]:
     """
     meta: dict[str, str] = {}
     current = image.copy()
+
+    # Step 0: DPI normalization — upscale low-res scans before all other steps
+    target_dpi = 300
+    try:
+        target_dpi = config.preprocessing.target_dpi
+    except AttributeError:
+        pass
+
+    if source_dpi is not None and source_dpi < target_dpi:
+        current, meta = _run_step(
+            "dpi_normalize", current, meta,
+            True,
+            lambda img: _do_dpi_normalize(img, source_dpi, target_dpi),
+        )
+        log.debug(f"dpi_normalize source={source_dpi} target={target_dpi}")
+    else:
+        meta["dpi_normalize"] = "skipped"
 
     # Step 1: denoise
     current, meta = _run_step(
@@ -99,6 +127,14 @@ def _do_deskew(image: np.ndarray, config) -> np.ndarray:
 def _do_binarize(image: np.ndarray, config) -> np.ndarray:
     from preprocessing.thresholding import adaptive_binarization
     return adaptive_binarization(image, config)
+
+
+def _do_dpi_normalize(image: np.ndarray, source_dpi: int, target_dpi: int) -> np.ndarray:
+    import cv2
+    scale = target_dpi / source_dpi
+    new_h = int(round(image.shape[0] * scale))
+    new_w = int(round(image.shape[1] * scale))
+    return cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
 
 
 # ---------------------------------------------------------------------------

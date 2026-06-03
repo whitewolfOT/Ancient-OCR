@@ -276,24 +276,23 @@ def test_morphology_roundtrip_rule_based_to_lexicon(temp_db_path):
 # ---------------------------------------------------------------------------
 
 def test_tier3_high_confidence_ocr_accepted_unconditionally(temp_db_path):
-    """High OCR confidence (>=0.90) bypasses lexicon + morphology — even garbage tokens accepted.
+    """High OCR confidence (>=0.90) bypasses lexicon + morphology.
 
-    Known limitation: Tier 3 trusts the OCR engine completely. If noise tokens
-    arrive with high paddle confidence on degraded scans, they pass through
-    unfiltered. Monitor false-positive rate and lower the threshold in config
-    if needed.
+    Arabic tokens that survive the noise filter and carry OCR confidence >=0.90
+    are accepted as-is with reason_code='ocr_confident'.
     """
     from main import run_pipeline
     from ocr_engine import ensemble as ens_mod
     from ocr_engine.schema import OCRResult, WordToken
 
-    garbage_tok = WordToken(
-        text="xqzw", confidence=0.95,
-        bbox=(0, 0, 10, 10),
+    # Valid Arabic multi-consonant token — passes noise filter, confidence >=0.90 → Tier 3
+    high_conf_tok = WordToken(
+        text="كتاب", confidence=0.95,
+        bbox=(0, 0, 40, 20),
         page_index=0, source="paddle",
     )
     ocr_result = OCRResult(
-        text="xqzw", words=[garbage_tok], confidence=0.95,
+        text="كتاب", words=[high_conf_tok], confidence=0.95,
         page_index=0, source="paddle", raw={},
     )
     pages = [{"image": _make_image(), "page_index": 0}]
@@ -302,8 +301,8 @@ def test_tier3_high_confidence_ocr_accepted_unconditionally(temp_db_path):
     with patch.object(ens_mod, "run_ensemble", return_value=ocr_result):
         result = run_pipeline(pages, mode="annotated", cfg=cfg)
 
-    tokens = result.get("tokens", [])
-    assert tokens, "Expected at least one token in annotated output"
+    tokens = [t for t in result.get("tokens", []) if t["decision"] != "reject"]
+    assert tokens, "Expected at least one non-rejected token in annotated output"
     tok = tokens[0]
     assert tok["decision"] == "accept", f"Expected accept, got {tok['decision']!r}"
     assert tok["reason_code"] == "ocr_confident", f"Expected ocr_confident, got {tok['reason_code']!r}"
