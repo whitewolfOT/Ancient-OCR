@@ -29,6 +29,17 @@ SOURCES: list[SourceConfig] = [
         parser_adapter="fixture",
     ),
     SourceConfig(
+        name="quranic_corpus",
+        enabled=True,
+        priority=10,             # research-grade peer-reviewed Quranic morphology
+        era="classical",
+        license="research_open",
+        path="data/lexicons/quranic_corpus/",
+        parser_adapter="quranic_corpus_tsv",
+        domain="quranic",
+        book_name="Quranic Arabic Corpus v0.4",
+    ),
+    SourceConfig(
         name="lanes",
         enabled=True,
         priority=9,
@@ -65,6 +76,17 @@ SOURCES: list[SourceConfig] = [
         license="cc_by_sa_4",
         path="data/lexicons/qamus/",
         parser_adapter="qamus_lmf",
+    ),
+    SourceConfig(
+        name="khorsi_roots",
+        enabled=True,
+        priority=5,              # supplementary root signal; unvalidated 2013 extraction
+        era="classical",
+        license="cc_by_sa_3",
+        path="data/lexicons/khorsi/KhorsiCorpus.sql",
+        parser_adapter="khorsi_sql",
+        domain=None,
+        book_name="Arabic Roots and Derivatives (from Taj al-Arus)",
     ),
     SourceConfig(
         name="wordnet",
