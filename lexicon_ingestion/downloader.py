@@ -203,6 +203,139 @@ def fetch_qamus_raw(dest_dir: str) -> str | None:
         log.error(f"fetch_qamus_raw: extraction failed: {exc}"); return None
 
 
+def fetch_khorsi_raw(dest_dir: str) -> str | None:
+    """Download and decompress KhorsiCorpus.sql.bz2 from SourceForge.
+
+    Returns path to the decompressed .sql file, or None on failure.
+    Falls back to clear manual-download instructions if the URL is blocked.
+    """
+    try:
+        import requests
+    except ImportError:
+        log.error("fetch_khorsi_raw: 'requests' not installed"); return None
+
+    dest = Path(dest_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+
+    sql_path = dest / "KhorsiCorpus.sql"
+    if sql_path.exists() and sql_path.stat().st_size > 1_000:
+        log.info(f"fetch_khorsi_raw: SQL file already present at {sql_path}")
+        return str(sql_path)
+
+    sf_url = (
+        "https://sourceforge.net/projects/arabicrootsandderivatives"
+        "/files/latest/download"
+    )
+
+    try:
+        probe = requests.head(sf_url, timeout=15, allow_redirects=True)
+        if probe.status_code not in (200, 302):
+            log.error(
+                f"fetch_khorsi_raw: SourceForge returned HTTP {probe.status_code}. "
+                "Download manually from "
+                "https://sourceforge.net/projects/arabicrootsandderivatives/ "
+                f"and place KhorsiCorpus.sql in {dest}"
+            )
+            return None
+    except Exception as exc:
+        log.error(f"fetch_khorsi_raw: URL probe failed: {exc}"); return None
+
+    bz2_path = dest / "KhorsiCorpus.sql.bz2"
+    try:
+        with requests.get(
+            sf_url, stream=True, timeout=120, allow_redirects=True
+        ) as r:
+            r.raise_for_status()
+            with open(bz2_path, "wb") as f:
+                for chunk in r.iter_content(chunk_size=65536):
+                    f.write(chunk)
+    except Exception as exc:
+        log.error(f"fetch_khorsi_raw: download failed: {exc}"); return None
+
+    try:
+        import bz2 as _bz2
+        with _bz2.open(bz2_path, "rb") as bz2_f, open(sql_path, "wb") as sql_f:
+            while chunk := bz2_f.read(65536):
+                sql_f.write(chunk)
+        bz2_path.unlink(missing_ok=True)
+        log.info(f"fetch_khorsi_raw: extracted SQL to {sql_path}")
+        return str(sql_path)
+    except Exception as exc:
+        log.error(f"fetch_khorsi_raw: decompression failed: {exc}"); return None
+
+
+def fetch_quranic_corpus_raw(dest_dir: str) -> str | None:
+    """Attempt to download Quranic Arabic Corpus morphology file from corpus.quran.com.
+
+    NOTE: corpus.quran.com returns HTTP 403 from most automated environments
+    (confirmed by probe).  If the probe below fails, download manually from:
+
+        https://corpus.quran.com/download/
+
+    and place quranic-corpus-morphology-0.4.txt in dest_dir.
+    """
+    try:
+        import requests
+    except ImportError:
+        log.error("fetch_quranic_corpus_raw: 'requests' not installed"); return None
+
+    dest = Path(dest_dir)
+    dest.mkdir(parents=True, exist_ok=True)
+
+    candidates = (
+        sorted(dest.glob("quranic-corpus-morphology*.txt"))
+        + sorted(dest.glob("*.txt"))
+    )
+    if candidates:
+        log.info(f"fetch_quranic_corpus_raw: file already present at {candidates[0]}")
+        return str(candidates[0])
+
+    url = "https://corpus.quran.com/download/quranic-corpus-morphology-0.4.zip"
+
+    try:
+        probe = requests.head(url, timeout=10, allow_redirects=True)
+        if probe.status_code == 403:
+            log.error(
+                "fetch_quranic_corpus_raw: corpus.quran.com returned 403 Forbidden. "
+                "Download manually from https://corpus.quran.com/download/ "
+                f"and place the .txt file in {dest}"
+            )
+            return None
+        probe.raise_for_status()
+    except Exception as exc:
+        log.error(
+            f"fetch_quranic_corpus_raw: URL probe failed ({exc}). "
+            "Download manually from https://corpus.quran.com/download/ "
+            f"and place the .txt file in {dest}"
+        )
+        return None
+
+    zip_dest = dest / "quranic-corpus-morphology-0.4.zip"
+    try:
+        with requests.get(url, stream=True, timeout=120) as r:
+            r.raise_for_status()
+            with open(zip_dest, "wb") as f:
+                for chunk in r.iter_content(chunk_size=65536):
+                    f.write(chunk)
+    except Exception as exc:
+        log.error(f"fetch_quranic_corpus_raw: download failed: {exc}"); return None
+
+    try:
+        with zipfile.ZipFile(zip_dest) as zf:
+            txt_names = [n for n in zf.namelist() if n.endswith(".txt")]
+            if not txt_names:
+                log.error("fetch_quranic_corpus_raw: no .txt file in ZIP")
+                return None
+            for name in txt_names:
+                zf.extract(name, dest)
+        zip_dest.unlink(missing_ok=True)
+        extracted = sorted(dest.glob("*.txt"))
+        log.info(f"fetch_quranic_corpus_raw: extracted to {dest}")
+        return str(extracted[0]) if extracted else None
+    except Exception as exc:
+        log.error(f"fetch_quranic_corpus_raw: extraction failed: {exc}"); return None
+
+
 def build_lexicons_db(
     output_path: str | None = None,
     sources: list[str] | None = None,
@@ -263,6 +396,18 @@ def build_lexicons_db(
                 qamus_dir = Path(source.path)
                 if not qamus_dir.exists() or not list(qamus_dir.glob("*.xml")):
                     fetch_qamus_raw(source.path)
+            elif source.parser_adapter == "quranic_corpus_tsv":
+                quranic_dir = Path(source.path)
+                txt_files = (
+                    list(quranic_dir.glob("quranic-corpus-morphology*.txt"))
+                    + list(quranic_dir.glob("*.txt"))
+                ) if quranic_dir.exists() else []
+                if not txt_files:
+                    fetch_quranic_corpus_raw(source.path)
+            elif source.parser_adapter == "khorsi_sql":
+                sql_path = Path(source.path)
+                if not sql_path.exists():
+                    fetch_khorsi_raw(str(sql_path.parent))
 
             try:
                 entries = parse_source(source)

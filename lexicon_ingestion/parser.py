@@ -83,6 +83,10 @@ def parse_source(source: SourceConfig) -> list[LexiconEntry]:
         return _parse_shamela_sqlite(source)
     if adapter == "openiti":
         return _parse_openiti_markdown(source)
+    if adapter == "quranic_corpus_tsv":
+        return _parse_quranic_corpus_tsv(source)
+    if adapter == "khorsi_sql":
+        return _parse_khorsi_sql(source)
     if adapter in ("wordnet",):
         log.warning(f"parser adapter '{adapter}' not yet implemented; returning empty")
         return []
@@ -606,6 +610,185 @@ def _parse_openiti_file(txt_path: Path, source: SourceConfig) -> list[LexiconEnt
                 current_body.append(line.strip())
 
     _flush_section()
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Quranic Arabic Corpus — tab-separated morphological annotation
+# ---------------------------------------------------------------------------
+
+def _parse_quranic_corpus_tsv(source: SourceConfig) -> list[LexiconEntry]:
+    """Parse Quranic Arabic Corpus morphological annotation (TSV, v0.4).
+
+    File format — 4 tab-separated columns per non-comment line:
+      LOCATION   FORM   TAG   FEATURES
+    where FEATURES is pipe-separated KEY:VALUE pairs.
+
+    Only STEM rows with both LEM and ROOT in FEATURES are used.
+    Deduplicated on (lemma, root); up to 5 verse locations per entry.
+    gloss is intentionally empty — no English glosses in this file.
+    """
+    base = Path(source.path)
+    if not base.exists():
+        log.warning(
+            f"quranic_corpus: directory not found at {base}. "
+            "Download from https://corpus.quran.com/download/ "
+            "and place the .txt file in data/lexicons/quranic_corpus/"
+        )
+        return []
+
+    candidates = (
+        sorted(base.glob("quranic-corpus-morphology*.txt"))
+        + sorted(base.glob("*.txt"))
+    )
+    if not candidates:
+        log.warning(f"quranic_corpus: no .txt file found in {base}")
+        return []
+
+    tsv_path = candidates[0]
+
+    # (lemma, root) → {"pattern": str|None, "examples": [loc, ...]}
+    seen: dict[tuple[str, str], dict] = {}
+
+    try:
+        with open(tsv_path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.rstrip("\n")
+                if not line or line.startswith("#"):
+                    continue
+                parts = line.split("\t")
+                if len(parts) < 4:
+                    continue
+                location, _form, tag, features_raw = (
+                    parts[0], parts[1], parts[2], parts[3]
+                )
+
+                if tag != "STEM":
+                    continue
+
+                feats: dict[str, str] = {}
+                for feat in features_raw.split("|"):
+                    if ":" in feat:
+                        k, _, v = feat.partition(":")
+                        feats[k.strip()] = v.strip()
+
+                lemma = feats.get("LEM", "").strip()
+                root = feats.get("ROOT", "").strip()
+                if not lemma or not root:
+                    continue
+
+                pos = feats.get("POS", "").strip() or None
+
+                # Verse location: strip parens, keep chapter:verse:word
+                loc_clean = location.strip("()")
+                loc_parts = loc_clean.split(":")
+                verse_loc = ":".join(loc_parts[:3]) if len(loc_parts) >= 3 else loc_clean
+
+                key = (lemma, root)
+                if key not in seen:
+                    seen[key] = {"pattern": pos, "examples": []}
+                if len(seen[key]["examples"]) < 5:
+                    seen[key]["examples"].append(verse_loc)
+
+    except Exception as exc:
+        log.warning(f"quranic_corpus: parse error in {tsv_path.name}: {exc}")
+        return []
+
+    entries = [
+        LexiconEntry(
+            lemma=lemma,
+            root=root,
+            pattern=meta["pattern"],
+            gloss="",
+            source=source.name,
+            era=source.era,
+            domain=source.domain,
+            examples=meta["examples"],
+            priority=source.priority,
+        )
+        for (lemma, root), meta in seen.items()
+    ]
+    log.info(f"quranic_corpus: parsed entries={len(entries)} from {tsv_path.name}")
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Khorsi Arabic Roots and Derivatives — MySQL SQL dump
+# ---------------------------------------------------------------------------
+
+# Matches a single VALUES tuple: (id, 'root', 'word', 'unvowelword', 'stem'|NULL)
+# The dump file is UTF-8 despite the table CHARSET=cp1256 declaration —
+# phpMyAdmin wrote it with SET NAMES utf8 active at dump time.
+_KHORSI_ROW_RE = re.compile(
+    r"""\(\s*\d+\s*,\s*'((?:[^'\\]|\\.)*)'\s*,\s*'((?:[^'\\]|\\.)*)'\s*,"""
+    r"""\s*'(?:[^'\\]|\\.)*'\s*,\s*(NULL|'(?:[^'\\]|\\.)*')\s*\)""",
+    re.UNICODE,
+)
+
+
+def _parse_khorsi_sql(source: SourceConfig) -> list[LexiconEntry]:
+    """Parse Arabic Roots and Derivatives MySQL dump.
+
+    Column mapping: root→root, word→lemma, nonormstem→pattern.
+    The dump file uses UTF-8 encoding (phpMyAdmin SET NAMES utf8) despite the
+    table declaration CHARSET=cp1256 — verified empirically by comparing both
+    encodings; only UTF-8 produces valid Arabic Unicode from this file.
+    No gloss field exists in this dataset. Deduplicated on (lemma, root).
+    """
+    path = Path(source.path)
+    if not path.exists():
+        log.warning(
+            f"khorsi_roots: SQL file not found at {path}. "
+            "Download from "
+            "https://sourceforge.net/projects/arabicrootsandderivatives/ "
+            "and place KhorsiCorpus.sql in data/lexicons/khorsi/"
+        )
+        return []
+
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            content = fh.read()
+    except Exception as exc:
+        log.warning(f"khorsi_roots: could not read {path}: {exc}")
+        return []
+
+    seen: set[tuple[str, str]] = set()
+    entries: list[LexiconEntry] = []
+
+    for m in _KHORSI_ROW_RE.finditer(content):
+        root = m.group(1).replace("\\'", "'").strip()
+        word = m.group(2).replace("\\'", "'").strip()
+        stem_raw = m.group(3)
+
+        if not root or not word:
+            continue
+        if not _ARABIC_RE.search(root) or not _ARABIC_RE.search(word):
+            continue
+
+        if stem_raw == "NULL":
+            pattern = None
+        else:
+            # Strip surrounding quotes; empty string → None
+            pattern = stem_raw[1:-1].replace("\\'", "'").strip() or None
+
+        key = (word, root)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        entries.append(LexiconEntry(
+            lemma=word,
+            root=root,
+            pattern=pattern,
+            gloss="",
+            source=source.name,
+            era=source.era,
+            domain=source.domain,
+            examples=[],
+            priority=source.priority,
+        ))
+
+    log.info(f"khorsi_roots: parsed entries={len(entries)}")
     return entries
 
 
