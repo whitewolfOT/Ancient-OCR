@@ -1,8 +1,14 @@
-"""Tests for _parse_quranic_corpus_tsv() using synthetic TSV fixtures only."""
+"""Tests for _parse_quranic_corpus_tsv() using synthetic fixtures in new format.
+
+New file format (mustafa0x/quran-morphology):
+  LOCATION   FORM   TAG   FEATURES
+  1:1:1:2    اسْمِ  N     ROOT:سمو|LEM:اسْم|M|GEN
+
+TAG is POS code: N (noun/adj/pn), V (verb), P (particle — skip).
+Location has no parens. source.path is the file path, not a directory.
+"""
 from __future__ import annotations
 
-import textwrap
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -20,31 +26,30 @@ def _source(path: str) -> SourceConfig:
         path=path,
         parser_adapter="quranic_corpus_tsv",
         domain="quranic",
-        book_name="Quranic Arabic Corpus v0.4",
+        book_name="Quranic Arabic Corpus (mustafa0x/quran-morphology)",
     )
 
 
 def _write_tsv(tmp_path: Path, lines: list[str]) -> SourceConfig:
-    """Write tab-separated lines to a fixture file and return a SourceConfig."""
-    tsv = tmp_path / "quranic-corpus-morphology-0.4.txt"
+    """Write tab-separated lines directly to quran-morphology.txt, return SourceConfig."""
+    tsv = tmp_path / "quran-morphology.txt"
     tsv.write_text("\n".join(lines), encoding="utf-8")
-    return _source(str(tmp_path))
+    return _source(str(tsv))
 
 
 # ---------------------------------------------------------------------------
 # Basic parsing
 # ---------------------------------------------------------------------------
 
-def test_stem_row_parses_lemma_root_pattern(tmp_path):
+def test_noun_row_parses_lemma_root_pattern(tmp_path):
     src = _write_tsv(tmp_path, [
-        "# comment",
-        "(1:1:1:2)\tاسْمِ\tSTEM\tROOT:سمو|LEM:اِسْم|POS:N",
+        "1:1:1:2\tاسْمِ\tN\tROOT:سمو|LEM:اسْم|M|GEN",
     ])
     from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
     entries = _parse_quranic_corpus_tsv(src)
     assert len(entries) == 1
     e = entries[0]
-    assert e.lemma == "اِسْم"
+    assert e.lemma == "اسْم"
     assert e.root == "سمو"
     assert e.pattern == "N"
     assert e.examples == ["1:1:1"]
@@ -54,14 +59,14 @@ def test_stem_row_parses_lemma_root_pattern(tmp_path):
     assert e.gloss == ""
 
 
-def test_verb_stem_parses_correctly(tmp_path):
+def test_verb_row_parses_correctly(tmp_path):
     src = _write_tsv(tmp_path, [
-        "(2:1:1:1)\tخَلَقَ\tSTEM\tROOT:خلق|LEM:خَلَقَ|POS:V",
+        "1:5:2:1\tنَعْبُدُ\tV\tIMPF|VF:1|ROOT:عبد|LEM:عَبَدَ|1P|MOOD:IND",
     ])
     from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
     entries = _parse_quranic_corpus_tsv(src)
     assert len(entries) == 1
-    assert entries[0].root == "خلق"
+    assert entries[0].root == "عبد"
     assert entries[0].pattern == "V"
 
 
@@ -69,42 +74,32 @@ def test_verb_stem_parses_correctly(tmp_path):
 # Row filtering
 # ---------------------------------------------------------------------------
 
-def test_prefix_row_is_skipped(tmp_path):
+def test_particle_row_is_skipped(tmp_path):
     src = _write_tsv(tmp_path, [
-        "(1:1:1:1)\tبِ\tPREFIX\tPREFIX|B",
-        "(1:1:1:2)\tاسْمِ\tSTEM\tROOT:سمو|LEM:اِسْم|POS:N",
+        "1:1:1:1\tبِ\tP\tP|PREF|LEM:ب",
+        "1:1:1:2\tاسْمِ\tN\tROOT:سمو|LEM:اسْم|M|GEN",
     ])
     from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
     entries = _parse_quranic_corpus_tsv(src)
     assert len(entries) == 1
-    assert entries[0].lemma == "اِسْم"
-
-
-def test_suffix_row_is_skipped(tmp_path):
-    src = _write_tsv(tmp_path, [
-        "(1:1:1:3)\tهُ\tSUFFIX\tSUFFIX|PRON:3MS",
-        "(1:1:1:2)\tاسْمِ\tSTEM\tROOT:سمو|LEM:اِسْم|POS:N",
-    ])
-    from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
-    entries = _parse_quranic_corpus_tsv(src)
-    assert len(entries) == 1
+    assert entries[0].lemma == "اسْم"
 
 
 def test_missing_root_row_is_skipped(tmp_path):
     src = _write_tsv(tmp_path, [
-        "(1:1:1:1)\tوَ\tSTEM\tLEM:وَ|POS:CONJ",          # no ROOT
-        "(1:1:1:2)\tاسْمِ\tSTEM\tROOT:سمو|LEM:اِسْم|POS:N",
+        "1:5:3:1\tوَ\tN\tLEM:وَ|CONJ",              # no ROOT
+        "1:1:1:2\tاسْمِ\tN\tROOT:سمو|LEM:اسْم|M|GEN",
     ])
     from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
     entries = _parse_quranic_corpus_tsv(src)
     assert len(entries) == 1
-    assert entries[0].lemma == "اِسْم"
+    assert entries[0].lemma == "اسْم"
 
 
 def test_missing_lem_row_is_skipped(tmp_path):
     src = _write_tsv(tmp_path, [
-        "(1:1:1:1)\tكَتَبَ\tSTEM\tROOT:كتب|POS:V",        # no LEM
-        "(1:1:1:2)\tاسْمِ\tSTEM\tROOT:سمو|LEM:اِسْم|POS:N",
+        "1:5:1:1\tكَتَبَ\tV\tROOT:كتب|PERF",         # no LEM
+        "1:1:1:2\tاسْمِ\tN\tROOT:سمو|LEM:اسْم|M|GEN",
     ])
     from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
     entries = _parse_quranic_corpus_tsv(src)
@@ -117,9 +112,9 @@ def test_missing_lem_row_is_skipped(tmp_path):
 
 def test_same_lemma_root_deduplicates_to_one_entry(tmp_path):
     src = _write_tsv(tmp_path, [
-        "(3:1:1:1)\tخَلَقَ\tSTEM\tROOT:خلق|LEM:خَلَقَ|POS:V",
-        "(3:5:3:1)\tخَلَقَ\tSTEM\tROOT:خلق|LEM:خَلَقَ|POS:V",
-        "(7:2:1:1)\tخَلَقَ\tSTEM\tROOT:خلق|LEM:خَلَقَ|POS:V",
+        "3:1:1:1\tخَلَقَ\tV\tROOT:خلق|LEM:خَلَقَ|PERF",
+        "3:5:3:1\tخَلَقَ\tV\tROOT:خلق|LEM:خَلَقَ|PERF",
+        "7:2:1:1\tخَلَقَ\tV\tROOT:خلق|LEM:خَلَقَ|PERF",
     ])
     from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
     entries = _parse_quranic_corpus_tsv(src)
@@ -132,7 +127,7 @@ def test_same_lemma_root_deduplicates_to_one_entry(tmp_path):
 
 def test_examples_capped_at_five(tmp_path):
     rows = [
-        f"({i}:1:1:1)\tكَتَبَ\tSTEM\tROOT:كتب|LEM:كَتَبَ|POS:V"
+        f"{i}:1:1:1\tكَتَبَ\tV\tROOT:كتب|LEM:كَتَبَ|PERF"
         for i in range(1, 9)   # 8 occurrences
     ]
     src = _write_tsv(tmp_path, rows)
@@ -143,50 +138,43 @@ def test_examples_capped_at_five(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Full 10-row fixture (matches the real synthetic file in data/lexicons/)
+# Multi-row fixture
 # ---------------------------------------------------------------------------
 
-def test_ten_row_fixture_produces_five_entries(tmp_path):
+def test_mixed_fixture_count_and_dedup(tmp_path):
     rows = [
-        "# QURANIC ARABIC CORPUS - MORPHOLOGICAL ANNOTATION",
-        "(1:1:1:1)\tبِ\tPREFIX\tPREFIX|B",
-        "(1:1:1:2)\tاسْمِ\tSTEM\tROOT:سمو|LEM:اِسْم|POS:N",
-        "(1:1:1:3)\tاللَّهِ\tSTEM\tROOT:اله|LEM:اَللّٰه|POS:PN",
-        "(2:1:1:1)\tالرَّحْمَٰنِ\tSTEM\tROOT:رحم|LEM:رَحْمَٰن|POS:ADJ",
-        "(3:1:1:1)\tخَلَقَ\tSTEM\tROOT:خلق|LEM:خَلَقَ|POS:V",
-        "(3:5:3:1)\tخَلَقَ\tSTEM\tROOT:خلق|LEM:خَلَقَ|POS:V",
-        "(4:1:1:1)\tوَ\tSTEM\tLEM:وَ|POS:CONJ",            # no ROOT → skip
-        "(5:1:1:1)\tكَتَبَ\tSTEM\tROOT:كتب|LEM:كَتَبَ|POS:V",
-        "(6:1:1:1)\tكَتَبَ\tSTEM\tROOT:كتب|LEM:كَتَبَ|POS:V",
-        "(7:1:1:1)\tكَتَبَ\tSTEM\tROOT:كتب|LEM:كَتَبَ|POS:V",
+        "1:1:1:1\tبِ\tP\tP|PREF|LEM:ب",              # P → skip
+        "1:1:1:2\tاسْمِ\tN\tROOT:سمو|LEM:اسْم|M|GEN",
+        "1:1:2:1\tاللَّهِ\tN\tPN|ROOT:أله|LEM:اللَّه|GEN",
+        "1:1:3:2\tرَّحْمَٰنِ\tN\tROOT:رحم|LEM:رَحْمٰن|MS|GEN|ADJ",
+        "3:1:1:1\tخَلَقَ\tV\tROOT:خلق|LEM:خَلَقَ|PERF",
+        "3:5:3:1\tخَلَقَ\tV\tROOT:خلق|LEM:خَلَقَ|PERF",  # dup of above
+        "4:1:1:1\tوَ\tN\tLEM:وَ|CONJ",                # no ROOT → skip
+        "5:1:1:1\tكَتَبَ\tV\tROOT:كتب|LEM:كَتَبَ|PERF",
     ]
     src = _write_tsv(tmp_path, rows)
     from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
     entries = _parse_quranic_corpus_tsv(src)
 
+    # P skipped (1), no-ROOT skipped (1), خلق deduped → 5 unique entries
     assert len(entries) == 5
 
     by_lemma = {e.lemma: e for e in entries}
-    assert "اِسْم" in by_lemma
+    assert "اسْم" in by_lemma
+    assert "اللَّه" in by_lemma
+    assert "رَحْمٰن" in by_lemma
     assert "خَلَقَ" in by_lemma
     assert "كَتَبَ" in by_lemma
-    assert "وَ" not in by_lemma              # no ROOT → skipped
+    assert "وَ" not in by_lemma
 
     assert len(by_lemma["خَلَقَ"].examples) == 2
-    assert len(by_lemma["كَتَبَ"].examples) == 3
 
 
 # ---------------------------------------------------------------------------
 # Missing data path
 # ---------------------------------------------------------------------------
 
-def test_missing_directory_returns_empty(tmp_path):
-    src = _source(str(tmp_path / "nonexistent_dir"))
-    from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
-    assert _parse_quranic_corpus_tsv(src) == []
-
-
-def test_empty_directory_returns_empty(tmp_path):
-    src = _source(str(tmp_path))   # dir exists but no .txt file
+def test_missing_file_returns_empty(tmp_path):
+    src = _source(str(tmp_path / "nonexistent.txt"))
     from lexicon_ingestion.parser import _parse_quranic_corpus_tsv
     assert _parse_quranic_corpus_tsv(src) == []

@@ -53,6 +53,16 @@ def _hf_repo(config=None) -> str:
     return os.environ.get("LEXICON_HF_REPO", "")
 
 
+def _hf_token_env_name(config=None) -> str:
+    """Return the env var name to read the HF API token from."""
+    if config is not None:
+        try:
+            return config.lexicon.hf_token_env or "HF_TOKEN"
+        except AttributeError:
+            pass
+    return "HF_TOKEN"
+
+
 def _count_entries(db_path: str) -> tuple[int, list[str]]:
     """Return (total_entry_count, list_of_source_names) from a lexicons.db."""
     try:
@@ -264,76 +274,112 @@ def fetch_khorsi_raw(dest_dir: str) -> str | None:
         log.error(f"fetch_khorsi_raw: decompression failed: {exc}"); return None
 
 
-def fetch_quranic_corpus_raw(dest_dir: str) -> str | None:
-    """Attempt to download Quranic Arabic Corpus morphology file from corpus.quran.com.
+def fetch_quranic_corpus_raw(dest_file: str) -> str | None:
+    """Download Quranic Arabic Corpus morphology file (mustafa0x/quran-morphology).
 
-    NOTE: corpus.quran.com returns HTTP 403 from most automated environments
-    (confirmed by probe).  If the probe below fails, download manually from:
+    Source: https://github.com/mustafa0x/quran-morphology (plain UTF-8 text, no ZIP).
+    Saves directly to dest_file (the full target file path, not a directory).
 
-        https://corpus.quran.com/download/
-
-    and place quranic-corpus-morphology-0.4.txt in dest_dir.
+    If the download fails, download manually from:
+        https://github.com/mustafa0x/quran-morphology/blob/master/quran-morphology.txt
+    and save it as data/lexicons/quranic_corpus/quran-morphology.txt.
     """
     try:
         import requests
     except ImportError:
         log.error("fetch_quranic_corpus_raw: 'requests' not installed"); return None
 
-    dest = Path(dest_dir)
-    dest.mkdir(parents=True, exist_ok=True)
+    dest = Path(dest_file)
+    dest.parent.mkdir(parents=True, exist_ok=True)
 
-    candidates = (
-        sorted(dest.glob("quranic-corpus-morphology*.txt"))
-        + sorted(dest.glob("*.txt"))
+    if dest.exists() and dest.stat().st_size > 1_000:
+        log.info(f"fetch_quranic_corpus_raw: file already present at {dest}")
+        return str(dest)
+
+    url = (
+        "https://raw.githubusercontent.com/mustafa0x/quran-morphology"
+        "/master/quran-morphology.txt"
     )
-    if candidates:
-        log.info(f"fetch_quranic_corpus_raw: file already present at {candidates[0]}")
-        return str(candidates[0])
 
-    url = "https://corpus.quran.com/download/quranic-corpus-morphology-0.4.zip"
+    try:
+        probe = requests.head(url, timeout=10, allow_redirects=True)
+        if probe.status_code not in (200,):
+            log.error(
+                f"fetch_quranic_corpus_raw: URL returned HTTP {probe.status_code}. "
+                "Download manually from "
+                "https://github.com/mustafa0x/quran-morphology/blob/master/quran-morphology.txt "
+                f"and save as {dest}"
+            )
+            return None
+    except Exception as exc:
+        log.error(
+            f"fetch_quranic_corpus_raw: URL probe failed ({exc}). "
+            "Download manually from "
+            "https://github.com/mustafa0x/quran-morphology/blob/master/quran-morphology.txt "
+            f"and save as {dest}"
+        )
+        return None
+
+    try:
+        with requests.get(url, stream=True, timeout=120) as r:
+            r.raise_for_status()
+            with open(dest, "wb") as f:
+                for chunk in r.iter_content(chunk_size=65536):
+                    f.write(chunk)
+        log.info(f"fetch_quranic_corpus_raw: downloaded to {dest}")
+        return str(dest)
+    except Exception as exc:
+        log.error(f"fetch_quranic_corpus_raw: download failed: {exc}"); return None
+
+
+def fetch_arabic_wordnet_raw(dest_file: str) -> str | None:
+    """Attempt to download Arabic WordNet LMF XML from globalwordnet.org.
+
+    NOTE: http://globalwordnet.org/gwadv/arabic-wordnet-lmf.xml returns HTTP 403
+    from most automated environments (confirmed by probe).  If the probe below
+    fails, download manually from:
+
+        http://globalwordnet.org/gwadv/arabic-wordnet-lmf.xml
+
+    and save it as data/lexicons/arabic_wordnet/wn.xml.
+    """
+    try:
+        import requests
+    except ImportError:
+        log.error("fetch_arabic_wordnet_raw: 'requests' not installed"); return None
+
+    dest = Path(dest_file)
+    if dest.exists() and dest.stat().st_size > 1_000:
+        log.info(f"fetch_arabic_wordnet_raw: file already present at {dest}")
+        return str(dest)
+
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    url = "http://globalwordnet.org/gwadv/arabic-wordnet-lmf.xml"
 
     try:
         probe = requests.head(url, timeout=10, allow_redirects=True)
         if probe.status_code == 403:
             log.error(
-                "fetch_quranic_corpus_raw: corpus.quran.com returned 403 Forbidden. "
-                "Download manually from https://corpus.quran.com/download/ "
-                f"and place the .txt file in {dest}"
+                "fetch_arabic_wordnet_raw: globalwordnet.org returned 403 Forbidden. "
+                "Download manually from http://globalwordnet.org/gwadv/arabic-wordnet-lmf.xml "
+                f"and save as {dest}"
             )
             return None
         probe.raise_for_status()
     except Exception as exc:
-        log.error(
-            f"fetch_quranic_corpus_raw: URL probe failed ({exc}). "
-            "Download manually from https://corpus.quran.com/download/ "
-            f"and place the .txt file in {dest}"
-        )
-        return None
+        log.error(f"fetch_arabic_wordnet_raw: URL probe failed: {exc}"); return None
 
-    zip_dest = dest / "quranic-corpus-morphology-0.4.zip"
     try:
         with requests.get(url, stream=True, timeout=120) as r:
             r.raise_for_status()
-            with open(zip_dest, "wb") as f:
+            with open(dest, "wb") as f:
                 for chunk in r.iter_content(chunk_size=65536):
                     f.write(chunk)
+        log.info(f"fetch_arabic_wordnet_raw: downloaded to {dest}")
+        return str(dest)
     except Exception as exc:
-        log.error(f"fetch_quranic_corpus_raw: download failed: {exc}"); return None
-
-    try:
-        with zipfile.ZipFile(zip_dest) as zf:
-            txt_names = [n for n in zf.namelist() if n.endswith(".txt")]
-            if not txt_names:
-                log.error("fetch_quranic_corpus_raw: no .txt file in ZIP")
-                return None
-            for name in txt_names:
-                zf.extract(name, dest)
-        zip_dest.unlink(missing_ok=True)
-        extracted = sorted(dest.glob("*.txt"))
-        log.info(f"fetch_quranic_corpus_raw: extracted to {dest}")
-        return str(extracted[0]) if extracted else None
-    except Exception as exc:
-        log.error(f"fetch_quranic_corpus_raw: extraction failed: {exc}"); return None
+        log.error(f"fetch_arabic_wordnet_raw: download failed: {exc}"); return None
 
 
 def build_lexicons_db(
@@ -397,13 +443,13 @@ def build_lexicons_db(
                 if not qamus_dir.exists() or not list(qamus_dir.glob("*.xml")):
                     fetch_qamus_raw(source.path)
             elif source.parser_adapter == "quranic_corpus_tsv":
-                quranic_dir = Path(source.path)
-                txt_files = (
-                    list(quranic_dir.glob("quranic-corpus-morphology*.txt"))
-                    + list(quranic_dir.glob("*.txt"))
-                ) if quranic_dir.exists() else []
-                if not txt_files:
+                quranic_file = Path(source.path)
+                if not quranic_file.exists():
                     fetch_quranic_corpus_raw(source.path)
+            elif source.parser_adapter == "arabic_wordnet_lmf":
+                awn_file = Path(source.path)
+                if not awn_file.exists():
+                    fetch_arabic_wordnet_raw(source.path)
             elif source.parser_adapter == "khorsi_sql":
                 sql_path = Path(source.path)
                 if not sql_path.exists():
@@ -462,14 +508,20 @@ def build_lexicons_db(
         raise
 
 
-def upload_to_hf(db_path: str, repo_id: str, token: str | None = None) -> None:
+def upload_to_hf(
+    db_path: str,
+    repo_id: str,
+    token: str | None = None,
+    config=None,
+) -> None:
     """Upload *db_path* to a HuggingFace dataset repository.
 
     Parameters
     ----------
     db_path  : local path to lexicons.db
     repo_id  : HF dataset repo ID, e.g. ``"username/ancient-ocr-lexicons"``
-    token    : HF API token; falls back to ``HF_TOKEN`` env var
+    token    : HF API token; falls back to env var named by config.lexicon.hf_token_env
+    config   : optional config object (for hf_token_env)
     """
     try:
         from huggingface_hub import HfApi
@@ -479,7 +531,7 @@ def upload_to_hf(db_path: str, repo_id: str, token: str | None = None) -> None:
             "Install it: pip install huggingface_hub"
         )
 
-    hf_token = token or os.environ.get("HF_TOKEN")
+    hf_token = token or os.environ.get(_hf_token_env_name(config))
     if not hf_token:
         raise ValueError(
             "No HuggingFace token provided. "
@@ -526,11 +578,11 @@ def _write_local_etag(db_path: str, etag: str) -> None:
     Path(_etag_path(db_path)).write_text(etag)
 
 
-def _hf_remote_etag(repo_id: str, token: str | None = None) -> str | None:
+def _hf_remote_etag(repo_id: str, token: str | None = None, config=None) -> str | None:
     """Return the current ETag/SHA256 of ``lexicons.db`` in the HF repo, or None."""
     try:
         import requests
-        hf_token = token or os.environ.get("HF_TOKEN")
+        hf_token = token or os.environ.get(_hf_token_env_name(config))
         url = (
             f"https://huggingface.co/datasets/{repo_id}"
             f"/resolve/main/lexicons.db"
@@ -578,7 +630,7 @@ def ensure_lexicons_db(
             return local_path
 
         local_etag = _read_local_etag(local_path)
-        remote_etag = _hf_remote_etag(repo_id)
+        remote_etag = _hf_remote_etag(repo_id, config=config)
 
         if remote_etag is None:
             # HF unreachable but we have a local copy — use it
@@ -609,7 +661,7 @@ def ensure_lexicons_db(
         log.warning("ensure_lexicons_db: 'requests' not installed, cannot download.")
         return None if not Path(local_path).exists() else local_path
 
-    hf_token = os.environ.get("HF_TOKEN")
+    hf_token = os.environ.get(_hf_token_env_name(config))
     url = f"https://huggingface.co/datasets/{repo_id}/resolve/main/lexicons.db"
     headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
 

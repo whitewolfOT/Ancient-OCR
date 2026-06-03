@@ -87,6 +87,8 @@ def parse_source(source: SourceConfig) -> list[LexiconEntry]:
         return _parse_quranic_corpus_tsv(source)
     if adapter == "khorsi_sql":
         return _parse_khorsi_sql(source)
+    if adapter == "arabic_wordnet_lmf":
+        return _parse_arabic_wordnet_lmf(source)
     if adapter in ("wordnet",):
         log.warning(f"parser adapter '{adapter}' not yet implemented; returning empty")
         return []
@@ -618,43 +620,37 @@ def _parse_openiti_file(txt_path: Path, source: SourceConfig) -> list[LexiconEnt
 # ---------------------------------------------------------------------------
 
 def _parse_quranic_corpus_tsv(source: SourceConfig) -> list[LexiconEntry]:
-    """Parse Quranic Arabic Corpus morphological annotation (TSV, v0.4).
+    """Parse Quranic Arabic Corpus morphological annotation (mustafa0x/quran-morphology).
 
-    File format — 4 tab-separated columns per non-comment line:
+    File format — 4 tab-separated columns, no header, data starts on line 1:
       LOCATION   FORM   TAG   FEATURES
-    where FEATURES is pipe-separated KEY:VALUE pairs.
+    LOCATION: chapter:verse:word:segment (no parens).
+    TAG: POS code — P (preposition/particle prefix), N, V, ADJ, PN, ADV, etc.
+    FEATURES: pipe-separated tokens; KEY:VALUE pairs for LEM/ROOT; bare tags for gender/case.
 
-    Only STEM rows with both LEM and ROOT in FEATURES are used.
+    Rows with TAG == "P" (prepositions/particles) are skipped; all other content
+    words (N, V, ADJ, PN, ADV, ...) are kept if they have both LEM and ROOT.
     Deduplicated on (lemma, root); up to 5 verse locations per entry.
     gloss is intentionally empty — no English glosses in this file.
     """
-    base = Path(source.path)
-    if not base.exists():
+    file_path = Path(source.path)
+    if not file_path.exists():
         log.warning(
-            f"quranic_corpus: directory not found at {base}. "
-            "Download from https://corpus.quran.com/download/ "
-            "and place the .txt file in data/lexicons/quranic_corpus/"
+            f"quranic_corpus: file not found at {file_path}. "
+            "Run: python -m lexicon_ingestion.downloader to fetch, or "
+            "download from https://github.com/mustafa0x/quran-morphology "
+            "and place quran-morphology.txt in data/lexicons/quranic_corpus/"
         )
         return []
-
-    candidates = (
-        sorted(base.glob("quranic-corpus-morphology*.txt"))
-        + sorted(base.glob("*.txt"))
-    )
-    if not candidates:
-        log.warning(f"quranic_corpus: no .txt file found in {base}")
-        return []
-
-    tsv_path = candidates[0]
 
     # (lemma, root) → {"pattern": str|None, "examples": [loc, ...]}
     seen: dict[tuple[str, str], dict] = {}
 
     try:
-        with open(tsv_path, encoding="utf-8", errors="replace") as fh:
+        with open(file_path, encoding="utf-8", errors="replace") as fh:
             for line in fh:
                 line = line.rstrip("\n")
-                if not line or line.startswith("#"):
+                if not line:
                     continue
                 parts = line.split("\t")
                 if len(parts) < 4:
@@ -663,7 +659,8 @@ def _parse_quranic_corpus_tsv(source: SourceConfig) -> list[LexiconEntry]:
                     parts[0], parts[1], parts[2], parts[3]
                 )
 
-                if tag != "STEM":
+                # Skip prepositions/particles — content words only
+                if tag == "P":
                     continue
 
                 feats: dict[str, str] = {}
@@ -677,21 +674,18 @@ def _parse_quranic_corpus_tsv(source: SourceConfig) -> list[LexiconEntry]:
                 if not lemma or not root:
                     continue
 
-                pos = feats.get("POS", "").strip() or None
-
-                # Verse location: strip parens, keep chapter:verse:word
-                loc_clean = location.strip("()")
-                loc_parts = loc_clean.split(":")
-                verse_loc = ":".join(loc_parts[:3]) if len(loc_parts) >= 3 else loc_clean
+                # Verse location: chapter:verse:word (first 3 of 4 parts)
+                loc_parts = location.split(":")
+                verse_loc = ":".join(loc_parts[:3]) if len(loc_parts) >= 3 else location
 
                 key = (lemma, root)
                 if key not in seen:
-                    seen[key] = {"pattern": pos, "examples": []}
+                    seen[key] = {"pattern": tag, "examples": []}
                 if len(seen[key]["examples"]) < 5:
                     seen[key]["examples"].append(verse_loc)
 
     except Exception as exc:
-        log.warning(f"quranic_corpus: parse error in {tsv_path.name}: {exc}")
+        log.warning(f"quranic_corpus: parse error in {file_path.name}: {exc}")
         return []
 
     entries = [
@@ -708,7 +702,7 @@ def _parse_quranic_corpus_tsv(source: SourceConfig) -> list[LexiconEntry]:
         )
         for (lemma, root), meta in seen.items()
     ]
-    log.info(f"quranic_corpus: parsed entries={len(entries)} from {tsv_path.name}")
+    log.info(f"quranic_corpus: parsed entries={len(entries)} from {file_path.name}")
     return entries
 
 
@@ -789,6 +783,105 @@ def _parse_khorsi_sql(source: SourceConfig) -> list[LexiconEntry]:
         ))
 
     log.info(f"khorsi_roots: parsed entries={len(entries)}")
+    return entries
+
+
+# ---------------------------------------------------------------------------
+# Arabic WordNet — Global WordNet LMF format
+# ---------------------------------------------------------------------------
+
+def _parse_arabic_wordnet_lmf(source: SourceConfig) -> list[LexiconEntry]:
+    """Parse Arabic WordNet from Global WordNet LMF XML.
+
+    Format: standard LMF with <LexicalEntry>, <Lemma writtenForm="...">,
+    and glosses via linked <Synset> / <Definition> elements.
+    root is None (no root field in AWN); morphology fallback extracts it.
+    """
+    import xml.etree.ElementTree as ET
+
+    file_path = Path(source.path)
+    if not file_path.exists():
+        log.warning(
+            f"arabic_wordnet: file not found at {file_path}. "
+            "Download arabic-wordnet-lmf.xml from http://globalwordnet.org/gwadv/ "
+            f"and save it as {file_path}"
+        )
+        return []
+
+    try:
+        tree = ET.parse(str(file_path))
+    except Exception as exc:
+        log.warning(f"arabic_wordnet: XML parse error: {exc}")
+        return []
+
+    root_el = tree.getroot()
+
+    # Build synset ID → gloss map from <Synset> elements
+    synset_glosses: dict[str, str] = {}
+    for synset in root_el.iter("Synset"):
+        sid = synset.get("id", "")
+        if not sid:
+            continue
+        for defn in synset.iter("Definition"):
+            text = (defn.text or "").strip()
+            if text:
+                synset_glosses[sid] = text
+                break
+
+    entries: list[LexiconEntry] = []
+    seen: set[str] = set()
+
+    for le in root_el.iter("LexicalEntry"):
+        # Lemma written form — attribute or child Lemma element
+        written_form = ""
+        lemma_el = le.find("Lemma")
+        if lemma_el is not None:
+            written_form = lemma_el.get("writtenForm", "").strip()
+        if not written_form:
+            written_form = le.get("writtenForm", "").strip()
+        if not written_form or not _ARABIC_RE.search(written_form):
+            continue
+
+        if written_form in seen:
+            continue
+        seen.add(written_form)
+
+        # Gloss via linked Sense → Synset
+        gloss = ""
+        for sense in le.iter("Sense"):
+            synset_id = sense.get("synset", "")
+            if synset_id and synset_id in synset_glosses:
+                gloss = synset_glosses[synset_id]
+                break
+        # Fall back to inline Definition if present
+        if not gloss:
+            for defn in le.iter("Definition"):
+                gloss = (defn.text or "").strip()
+                if gloss:
+                    break
+
+        # Root via morphology rule-based extractor (lazy import, never crashes)
+        root_val = None
+        try:
+            from morphology.root_extractor import extract_root
+            candidates = extract_root(written_form)
+            root_val = candidates[0].root if candidates else None
+        except Exception:
+            pass
+
+        entries.append(LexiconEntry(
+            lemma=written_form,
+            root=root_val,
+            pattern=None,
+            gloss=gloss,
+            source=source.name,
+            era=source.era,
+            domain=source.domain,
+            examples=[],
+            priority=source.priority,
+        ))
+
+    log.info(f"arabic_wordnet: parsed entries={len(entries)} from {file_path.name}")
     return entries
 
 

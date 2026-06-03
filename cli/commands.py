@@ -83,6 +83,76 @@ def handle_feedback(
         return 1
 
 
+def handle_upload_lexicons(
+    repo_id: str,
+    config_path: str = "config.yaml",
+    skip_build: bool = False,
+) -> int:
+    """Build lexicons.db and upload to HuggingFace. Returns exit code."""
+    try:
+        from utils.config import get_config
+        from lexicon_ingestion.downloader import (
+            build_lexicons_db,
+            upload_to_hf,
+            _db_path,
+            _hf_repo,
+            _hf_token_env_name,
+            _count_entries,
+            _MIN_ENTRIES_FOR_UPLOAD,
+        )
+        import os
+
+        config = get_config()
+        effective_repo_id = repo_id or _hf_repo(config)
+        if not effective_repo_id:
+            print(
+                "Error: no repo_id provided. Pass --repo-id or set "
+                "lexicon.hf_repo_id in config.yaml",
+                file=sys.stderr,
+            )
+            return 1
+
+        token_env = _hf_token_env_name(config)
+        token = os.environ.get(token_env)
+        if not token:
+            print(
+                f"Error: HuggingFace token not found. "
+                f"Set the {token_env} environment variable.",
+                file=sys.stderr,
+            )
+            return 1
+
+        db = _db_path(config)
+
+        if not skip_build:
+            print("Building lexicons.db from all enabled sources…", file=sys.stderr)
+            try:
+                total = build_lexicons_db(output_path=db, config=config)
+                print(f"Build complete: {total} entries written to {db}", file=sys.stderr)
+            except RuntimeError as exc:
+                print(f"Error: {exc}", file=sys.stderr)
+                return 1
+
+        count, sources = _count_entries(db)
+        if count < _MIN_ENTRIES_FOR_UPLOAD:
+            print(
+                f"Error: DB has only {count} entries (minimum {_MIN_ENTRIES_FOR_UPLOAD}). "
+                "Aborting upload.",
+                file=sys.stderr,
+            )
+            return 1
+
+        print(f"Uploading {db} ({count} entries from {sources}) → {effective_repo_id}…",
+              file=sys.stderr)
+        upload_to_hf(db, effective_repo_id, token=token, config=config)
+        print("Upload complete.", file=sys.stderr)
+        return 0
+
+    except Exception as exc:
+        _error(str(exc))
+        return 1
+
+
 def handle_calibrate(apply: bool = False, config_path: str = "config.yaml") -> int:
     """Run calibration and optionally apply suggested weights."""
     try:

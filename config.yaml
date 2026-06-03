@@ -83,6 +83,8 @@ morphology:
 
 lexicon:
   db_path: data/lexicons/lexicons.db   # single DB for both build and runtime
+  hf_repo_id: ""                       # HuggingFace dataset repo, e.g. "username/ancient-ocr-lexicons"
+  hf_token_env: "HF_TOKEN"             # env var name to read the HF API token from
   sources:
     fixture:
       enabled: true

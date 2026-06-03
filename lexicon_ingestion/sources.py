@@ -34,10 +34,10 @@ SOURCES: list[SourceConfig] = [
         priority=10,             # research-grade peer-reviewed Quranic morphology
         era="classical",
         license="research_open",
-        path="data/lexicons/quranic_corpus/",
+        path="data/lexicons/quranic_corpus/quran-morphology.txt",
         parser_adapter="quranic_corpus_tsv",
         domain="quranic",
-        book_name="Quranic Arabic Corpus v0.4",
+        book_name="Quranic Arabic Corpus (mustafa0x/quran-morphology)",
     ),
     SourceConfig(
         name="lanes",
@@ -47,6 +47,17 @@ SOURCES: list[SourceConfig] = [
         license="public_domain",
         path="data/lexicons/lanes/",
         parser_adapter="lanes_xml",
+    ),
+    SourceConfig(
+        name="arabic_wordnet",
+        enabled=False,       # data needs manual download from globalwordnet.org (403 in container)
+        priority=8,
+        era="classical",
+        license="cc_by_4",
+        path="data/lexicons/arabic_wordnet/wn.xml",
+        parser_adapter="arabic_wordnet_lmf",
+        domain=None,
+        book_name="Arabic WordNet (Global WordNet Association)",
     ),
     SourceConfig(
         name="lisan",

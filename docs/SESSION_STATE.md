@@ -31,9 +31,10 @@
 ## What does NOT work yet
 - PaddleOCR models not downloaded (403 in container) — run locally to activate
 - CAMeL Tools morphology DB not installed — rule-based fallback only
-- Quranic corpus real data needs manual download from corpus.quran.com/download
+- Quranic corpus fetcher updated to use mustafa0x/quran-morphology (Arabic Unicode, 130k lines, 4635 entries) — parser updated for new format; real file already in data/lexicons/quranic_corpus/quran-morphology.txt
 - Qāmūs LMF needs manual browser download from CLARIN
-- HuggingFace upload not configured (no HF_TOKEN, no hf_repo_id in config)
+- Arabic WordNet — parser stub written (enabled=False), data needs manual download from globalwordnet.org (403 in container)
+- HuggingFace upload configured: `upload-lexicons` CLI command available; set HF_TOKEN env var and --repo-id to activate
 - Context scorer bigram model empty — no Arabic phrase corpus
 - Right context not wired in pipeline
 
@@ -62,3 +63,4 @@
 ## Commands
 pytest tests/ -x
 python -m cli.main process data/test_images/sample_classical.jpg --mode annotated
+python -m cli.main upload-lexicons --repo-id username/ancient-ocr-lexicons

@@ -77,6 +77,18 @@ def feedback(
     raise typer.Exit(code)
 
 
+@app.command("upload-lexicons")
+def upload_lexicons(
+    repo_id: str = typer.Option("", "--repo-id", "-r", help="HuggingFace dataset repo, e.g. username/ancient-ocr-lexicons"),
+    config_path: str = typer.Option("config.yaml", "--config"),
+    skip_build: bool = typer.Option(False, "--skip-build", help="Skip rebuild; upload existing lexicons.db"),
+):
+    """Build lexicons.db from all enabled sources, then upload to HuggingFace."""
+    from cli.commands import handle_upload_lexicons
+    code = handle_upload_lexicons(repo_id=repo_id, config_path=config_path, skip_build=skip_build)
+    raise typer.Exit(code)
+
+
 @app.command("calibrate")
 def calibrate(
     apply: bool = typer.Option(False, "--apply", help="Write suggested weights to config.yaml"),
