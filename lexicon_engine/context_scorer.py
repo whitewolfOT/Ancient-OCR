@@ -153,6 +153,14 @@ def _ngram_score(
     bigrams = model["bigrams"]
     vocab = model["vocab"] or 1
 
+    if not bigrams:
+        # No co-occurrence data — unigram-only mode.
+        # Known lemma headword → slight lift; unknown → neutral fallback.
+        # Guard becomes unreachable once a real Arabic phrase corpus is added.
+        if candidate in unigrams:
+            return 0.6
+        return _FALLBACK_SCORE
+
     scores: list[float] = []
 
     # Bigram P(candidate | left[-1]) with Laplace smoothing
