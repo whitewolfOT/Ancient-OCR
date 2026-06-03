@@ -1,9 +1,10 @@
 """Context scorer — produces context_score for the confidence formula.
 
-N-gram model built lazily from all loaded lexicon entry glosses. Lane's
-glosses are English prose sentences (~40k entries), providing real bigram
-co-occurrence signal. Bigrams seen fewer than min_bigram_count times are
-treated as unseen to prevent citation codes from dominating.
+N-gram model built lazily from Arabic lemmas and example phrases across all
+loaded lexicon entries. English glosses are excluded — the pipeline scores
+Arabic tokens against Arabic context, and English bigrams would produce
+systematic negative bias when context is wired in. Bigrams seen fewer than
+min_bigram_count times are treated as unseen.
 
 Optional: AraBERT masked-LM behind [lm] extra + config flag.
 
@@ -105,10 +106,8 @@ def _get_ngram_model(config=None) -> dict:
         entries = load_entries(config=config)
         corpus: list[str] = []
         for entry in entries:
-            if entry.gloss:
-                corpus.append(entry.gloss)      # primary: prose gloss sentence
-            corpus.extend(entry.examples)       # secondary: example phrases
-            corpus.append(entry.lemma)          # tertiary: lemma unigram
+            corpus.extend(entry.examples)   # Arabic example phrases
+            corpus.append(entry.lemma)      # Arabic lemma unigram
     except Exception:
         corpus = []
 

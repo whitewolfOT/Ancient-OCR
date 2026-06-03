@@ -212,8 +212,8 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
 
             # Stage 7: lexicon + candidate pipeline
             candidates = candidate_generator.generate(word_token, morph_result, cfg)
-            left_ctx = []  # TODO: wire sentence context in next pass
-            right_ctx = []
+            left_ctx = [all_token_states[-1].normalized] if all_token_states else []
+            right_ctx = []  # right context requires two-pass processing — not yet implemented
             scored = [
                 scorer_mod.score(c, (left_ctx, right_ctx), word_token.confidence, cfg)
                 for c in candidates
