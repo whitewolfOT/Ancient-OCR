@@ -22,7 +22,7 @@ SOURCES: list[SourceConfig] = [
     SourceConfig(
         name="_fixture",
         enabled=True,
-        priority=10,
+        priority=1,              # synthetic test data — always lowest real-source rank
         era="classical",
         license="synthetic",
         path="data/lexicons/_fixture/fixture.jsonl",
