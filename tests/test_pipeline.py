@@ -38,10 +38,11 @@ def _synthetic_result(page_index=0):
 
 class _LexCfg:
     def __init__(self, db_path):
+        _dp = db_path
         class _idx:
-            path = db_path
             approximate_match_threshold = 0.8
         class _lex:
+            db_path = _dp
             index = _idx()
             sources = ["_fixture"]
         self.lexicon = _lex()
@@ -247,3 +248,62 @@ def test_review_export_accept_tokens_excluded():
     )
     queue = export_review_queue([ts_accept], source_image_pages=None, source_file="f.pdf")
     assert queue["review_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Morphology round-trip
+# ---------------------------------------------------------------------------
+
+def test_morphology_roundtrip_rule_based_to_lexicon(temp_db_path):
+    """Rule-based root extraction of كتب feeds directly into lexicon index lookup."""
+    from morphology.root_extractor import extract_root
+    from lexicon_ingestion.index_builder import get_index
+    import lexicon_ingestion.index_builder as ib
+
+    cfg = _LexCfg(temp_db_path)
+    candidates = extract_root("كتب", cfg)
+    assert candidates, "extract_root returned empty list"
+    top_root = candidates[0].root
+
+    ib._index_singleton = None
+    idx = get_index(cfg, force_rebuild=True)
+    entries = idx.by_root.get(top_root, [])
+    assert len(entries) > 0, f"No lexicon entries found for root {top_root!r}"
+
+
+# ---------------------------------------------------------------------------
+# Tier 3 false positive documentation
+# ---------------------------------------------------------------------------
+
+def test_tier3_high_confidence_ocr_accepted_unconditionally(temp_db_path):
+    """High OCR confidence (>=0.90) bypasses lexicon + morphology — even garbage tokens accepted.
+
+    Known limitation: Tier 3 trusts the OCR engine completely. If noise tokens
+    arrive with high paddle confidence on degraded scans, they pass through
+    unfiltered. Monitor false-positive rate and lower the threshold in config
+    if needed.
+    """
+    from main import run_pipeline
+    from ocr_engine import ensemble as ens_mod
+    from ocr_engine.schema import OCRResult, WordToken
+
+    garbage_tok = WordToken(
+        text="xqzw", confidence=0.95,
+        bbox=(0, 0, 10, 10),
+        page_index=0, source="paddle",
+    )
+    ocr_result = OCRResult(
+        text="xqzw", words=[garbage_tok], confidence=0.95,
+        page_index=0, source="paddle", raw={},
+    )
+    pages = [{"image": _make_image(), "page_index": 0}]
+    cfg = _LexCfg(temp_db_path)
+
+    with patch.object(ens_mod, "run_ensemble", return_value=ocr_result):
+        result = run_pipeline(pages, mode="annotated", cfg=cfg)
+
+    tokens = result.get("tokens", [])
+    assert tokens, "Expected at least one token in annotated output"
+    tok = tokens[0]
+    assert tok["decision"] == "accept", f"Expected accept, got {tok['decision']!r}"
+    assert tok["reason_code"] == "ocr_confident", f"Expected ocr_confident, got {tok['reason_code']!r}"

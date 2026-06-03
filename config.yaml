@@ -152,6 +152,7 @@ context_scorer:
   ngram_n: 3
   arabert_model: null  # e.g. "aubmindlab/bert-base-arabertv2"
   fallback_score: 0.5  # returned when context window is empty
+  min_bigram_count: 2  # bigrams below this count are discarded (filters citation noise)
 
 output:
   default_mode: clean  # "clean" | "annotated" | "debug"
