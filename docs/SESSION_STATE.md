@@ -1,16 +1,17 @@
 # Session State — Ancient OCR
 
 ## Current state
-- 194 tests passing
+- 198 tests passing
 - Branch: claude/adoring-carson-UqiLp
 
 ## Lexicon DB (data/lexicons/lexicons.db)
-- Total: 182,821 entries
+- Total: 187,451 entries
 - _fixture: 80 (synthetic, priority 1)
-- quranic_corpus: 5 (synthetic only — real data needs manual download)
+- quranic_corpus: 4,635 (real data — mustafa0x/quran-morphology, 130k lines)
 - lanes: 39,950 (live, TEI XML parsed)
 - khorsi_roots: 142,786 (live, SQL parsed from Tāj al-ʿArūs extraction)
 - qamus: 0 (CLARIN URL 403 — needs manual browser download)
+- arabic_wordnet: 0 (enabled=False — globalwordnet.org 403 in container)
 
 ## What works right now
 - Full pipeline end to end on real Arabic scans with Tesseract
