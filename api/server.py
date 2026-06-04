@@ -8,7 +8,19 @@ log = get_logger(__name__)
 
 try:
     from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
+
     app = FastAPI(title="Ancient-OCR API", version="0.1.0")
+
+    # Allow the Vite dev server (and any local origin) to call the API.
+    # In production the React build is served from FastAPI itself (same origin),
+    # so this middleware is a no-op for same-origin requests.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.on_event("startup")
     def _startup():
