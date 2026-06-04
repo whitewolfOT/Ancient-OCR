@@ -13,7 +13,6 @@ This module MUST always return a float in [0, 1] and must never raise.
 
 from __future__ import annotations
 
-import math
 from collections import defaultdict
 
 from utils.logging import get_logger
@@ -84,12 +83,81 @@ def context_score(
 # N-gram scorer
 # ---------------------------------------------------------------------------
 
-def _get_ngram_model(config=None) -> dict:
-    """Build or return a cached unigram/bigram model from lexicon entry glosses.
+def build_quranic_bigrams(morphology_path: str) -> dict:
+    """Build unigram/bigram counts from Quranic morphology file.
 
-    Corpus: entry.gloss (prose sentences) + entry.examples + entry.lemma
-    across all loaded entries. With Lane's loaded, this is ~40k gloss
-    sentences of English prose, providing real co-occurrence signal.
+    Groups rows by verse (first 3 location parts), collects lemmas in order
+    (skipping TAG==P rows and rows with no LEM), and emits consecutive lemma
+    pairs within each verse as bigrams.
+
+    Returns {"bigrams": {(lem1, lem2): count}, "unigrams": {lem: count}}.
+    """
+    from pathlib import Path
+
+    path = Path(morphology_path)
+    if not path.exists():
+        log.debug(f"build_quranic_bigrams: file not found at {path}; skipping")
+        return {"bigrams": {}, "unigrams": {}}
+
+    # verse_key → [lemma, ...]  (in order of token appearance)
+    verse_lemmas: dict[str, list[str]] = {}
+
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.rstrip("\n")
+                if not line:
+                    continue
+                parts = line.split("\t")
+                if len(parts) < 4:
+                    continue
+                location, _form, tag, features_raw = parts[0], parts[1], parts[2], parts[3]
+
+                if tag == "P":
+                    continue
+
+                lemma = ""
+                for feat in features_raw.split("|"):
+                    if feat.startswith("LEM:"):
+                        lemma = feat[4:].strip()
+                        break
+                if not lemma:
+                    continue
+
+                # Verse key: first 3 parts of location (chapter:verse:word_position → chapter:verse)
+                loc_parts = location.split(":")
+                verse_key = ":".join(loc_parts[:2]) if len(loc_parts) >= 2 else location
+
+                if verse_key not in verse_lemmas:
+                    verse_lemmas[verse_key] = []
+                verse_lemmas[verse_key].append(lemma)
+
+    except Exception as exc:
+        log.warning(f"build_quranic_bigrams: read error: {exc}")
+        return {"bigrams": {}, "unigrams": {}}
+
+    unigrams: dict[str, int] = defaultdict(int)
+    bigrams: dict[tuple[str, str], int] = defaultdict(int)
+
+    for lemmas in verse_lemmas.values():
+        for lem in lemmas:
+            unigrams[lem] += 1
+        for i in range(len(lemmas) - 1):
+            bigrams[(lemmas[i], lemmas[i + 1])] += 1
+
+    log.debug(
+        f"build_quranic_bigrams: {len(verse_lemmas)} verses → "
+        f"{len(unigrams)} unigrams, {len(bigrams)} bigram types"
+    )
+    return {"bigrams": dict(bigrams), "unigrams": dict(unigrams)}
+
+
+def _get_ngram_model(config=None) -> dict:
+    """Build or return a cached unigram/bigram model.
+
+    Primary corpus: entry.lemma from all loaded lexicon entries (unigrams).
+    Secondary corpus: Quranic verse co-occurrence bigrams from
+    config.lexicon.quranic_morphology_path (when the file is present).
     """
     global _ngram_model
     if _ngram_model is not None:
@@ -121,8 +189,21 @@ def _get_ngram_model(config=None) -> dict:
         for i in range(len(tokens) - 1):
             bigrams_raw[(tokens[i], tokens[i + 1])] += 1
 
-    # Filter low-frequency bigrams — prevents citation codes (e.g. "S, M,")
-    # from dominating the model with single-occurrence noise.
+    # Merge Quranic verse bigrams if the morphology file is configured
+    quranic_path = None
+    if config is not None:
+        try:
+            quranic_path = config.lexicon.quranic_morphology_path
+        except AttributeError:
+            pass
+    if quranic_path:
+        q = build_quranic_bigrams(quranic_path)
+        for lem, cnt in q["unigrams"].items():
+            unigrams[lem] += cnt
+        for pair, cnt in q["bigrams"].items():
+            bigrams_raw[pair] += cnt
+
+    # Filter low-frequency bigrams
     bigrams_filtered = {k: v for k, v in bigrams_raw.items() if v >= min_bigram}
 
     total_uni = sum(unigrams.values()) or 1
@@ -151,47 +232,45 @@ def _ngram_score(
     model = _get_ngram_model(config)
     unigrams = model["unigrams"]
     bigrams = model["bigrams"]
-    vocab = model["vocab"] or 1
 
     if not bigrams:
         # No co-occurrence data — unigram-only mode.
-        # Known lemma headword → slight lift; unknown → neutral fallback.
-        # Guard becomes unreachable once a real Arabic phrase corpus is added.
         if candidate in unigrams:
             return 0.6
         return _FALLBACK_SCORE
 
-    scores: list[float] = []
+    # Three-tier hierarchy (mutually exclusive per direction):
+    #   1. Known bigram hit  → score proportional to frequency, always > 0.6
+    #   2. Known unigram, no bigram context → 0.6
+    #   3. Unknown word      → _FALLBACK_SCORE (0.5)
+    # Unseen bigrams are "no evidence", not a penalty — Laplace smoothing is
+    # wrong here because the corpus is Quranic only; absence means out-of-domain,
+    # not incorrectness.
+    bigram_scores: list[float] = []
 
-    # Bigram P(candidate | left[-1]) with Laplace smoothing
     if left:
         prev = left[-1]
         count_bi = bigrams.get((prev, candidate), 0)
-        count_prev = unigrams.get(prev, 0)
-        p_bi = (count_bi + 1) / (count_prev + vocab)
-        scores.append(p_bi)
+        if count_bi > 0:
+            count_prev = unigrams.get(prev, 0) + 1
+            p_bi = count_bi / count_prev
+            bigram_scores.append(min(p_bi * 5, 0.95))
 
-    # Bigram P(right[0] | candidate)
     if right:
         nxt = right[0]
         count_bi = bigrams.get((candidate, nxt), 0)
-        count_cand = unigrams.get(candidate, 0)
-        p_bi = (count_bi + 1) / (count_cand + vocab)
-        scores.append(p_bi)
+        if count_bi > 0:
+            count_cand = unigrams.get(candidate, 0) + 1
+            p_bi = count_bi / count_cand
+            bigram_scores.append(min(p_bi * 5, 0.95))
 
-    # Unigram presence bonus: known word gets a modest lift
+    if bigram_scores:
+        return sum(bigram_scores) / len(bigram_scores)
+
     if candidate in unigrams:
-        scores.append(0.7)
+        return 0.6
 
-    if not scores:
-        return _FALLBACK_SCORE
-
-    # Geometric mean, then scale to [0.2, 0.9]
-    log_sum = sum(math.log(max(s, 1e-9)) for s in scores)
-    geo_mean = math.exp(log_sum / len(scores))
-    # Map (0, 1] → (0.2, 0.9] so even unknown context doesn't zero out
-    scaled = 0.2 + 0.7 * min(geo_mean * 100, 1.0)
-    return scaled
+    return _FALLBACK_SCORE
 
 
 # ---------------------------------------------------------------------------

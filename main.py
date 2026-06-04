@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 from typing import Any
+
+_ARABIC_RE = re.compile(r'[؀-ۿ]')
 
 
 def _require(module: str) -> Any:
@@ -206,7 +209,9 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
                 continue
 
             # ── Tier 3: high OCR confidence — trust the engine, skip pipeline ─
-            if word_token.confidence >= _accept_threshold:
+            # Only bypass for tokens that contain Arabic script; high-confidence
+            # digits, punctuation, and Latin chars fall through to Tier 4/noise.
+            if word_token.confidence >= _accept_threshold and _ARABIC_RE.search(word_token.text):
                 all_token_states.append(state_mod.TokenState(
                     original=word_token.text,
                     normalized=normalized_text,
@@ -233,8 +238,8 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
 
             # Stage 7: lexicon + candidate pipeline
             candidates = candidate_generator.generate(word_token, morph_result, cfg)
-            left_ctx = []
-            right_ctx = []  # TODO: wire left/right context when Arabic phrase corpus is available — bigram model currently unigram-only
+            left_ctx = [ts.selected for ts in all_token_states if ts.selected and ts.decision != "reject"][-3:]
+            right_ctx = []
             scored = [
                 scorer_mod.score(c, (left_ctx, right_ctx), word_token.confidence, morph_result, cfg)
                 for c in candidates
