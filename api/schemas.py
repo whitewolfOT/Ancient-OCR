@@ -126,6 +126,12 @@ class GroundTruthResponse(BaseModel):
     saved_at: str
 
 
+class GroundTruthData(BaseModel):
+    page_id: str
+    text: str
+    submitted_at: str
+
+
 class ClusterSettingsPayload(BaseModel):
     clahe: float = 2.0
     denoise: int = 3

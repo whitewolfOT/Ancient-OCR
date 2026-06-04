@@ -240,6 +240,35 @@ class TestGroundTruth:
         )
         assert resp.status_code == 404
 
+    def test_get_returns_404_before_save(self, client):
+        page_id = self._page_id(client)
+        resp = client.get(f"/pages/{page_id}/ground-truth")
+        assert resp.status_code == 404
+
+    def test_get_returns_saved_text(self, client):
+        page_id = self._page_id(client)
+        client.post(
+            f"/pages/{page_id}/ground-truth",
+            json={"text": "بسم الله الرحمن الرحيم", "page_id": page_id},
+        )
+        resp = client.get(f"/pages/{page_id}/ground-truth")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["page_id"] == page_id
+        assert body["text"] == "بسم الله الرحمن الرحيم"
+        assert "submitted_at" in body
+
+    def test_get_reflects_latest_save(self, client):
+        page_id = self._page_id(client)
+        client.post(f"/pages/{page_id}/ground-truth", json={"text": "أول", "page_id": page_id})
+        client.post(f"/pages/{page_id}/ground-truth", json={"text": "ثاني", "page_id": page_id})
+        resp = client.get(f"/pages/{page_id}/ground-truth")
+        assert resp.json()["text"] == "ثاني"
+
+    def test_get_unknown_page_returns_404(self, client):
+        resp = client.get("/pages/no-such-page/ground-truth")
+        assert resp.status_code == 404
+
 
 # ---------------------------------------------------------------------------
 # POST /documents/{doc_id}/apply-cluster-settings

@@ -49,6 +49,22 @@ export async function previewPage(pageId, settings) {
 }
 
 /**
+ * Fetch saved ground truth for a page.
+ * Returns null if none has been saved yet (404 treated as empty).
+ * @param {string} pageId
+ * @returns {Promise<{page_id, text, submitted_at} | null>}
+ */
+export async function getGroundTruth(pageId) {
+  try {
+    const { data } = await api.get(`/pages/${pageId}/ground-truth`)
+    return data
+  } catch (err) {
+    if (err?.response?.status === 404) return null
+    throw err
+  }
+}
+
+/**
  * Save Arabic ground truth text for a page.
  * @param {string} pageId
  * @param {string} text

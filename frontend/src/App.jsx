@@ -76,9 +76,12 @@ export default function App() {
           />
         </div>
 
-        {/* Right panel: GroundTruth + SimilarPages — stubs for now */}
+        {/* Right panel: GroundTruth + SimilarPages */}
         <div className="hidden w-64 flex-shrink-0 border-l border-gray-200 bg-white xl:flex xl:flex-col">
-          <GroundTruthPanel />
+          <GroundTruthPanel
+            pageId={selectedPageId}
+            onSubmitted={() => {/* sidebar dot refresh handled via PageSidebar reload */}}
+          />
           <SimilarPagesPanel />
         </div>
       </div>

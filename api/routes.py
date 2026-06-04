@@ -29,7 +29,7 @@ try:
         UploadResponse, ClusterInfo,
         PageInfo,
         PreviewRequest, PreviewResponse, SettingsApplied,
-        GroundTruthRequest, GroundTruthResponse,
+        GroundTruthRequest, GroundTruthResponse, GroundTruthData,
         ApplyClusterSettingsRequest, ApplyClusterSettingsResponse,
     )
 except ImportError:
@@ -52,7 +52,7 @@ def register_routes(app):
         UploadResponse, ClusterInfo,
         PageInfo,
         PreviewRequest, PreviewResponse, SettingsApplied,
-        GroundTruthRequest, GroundTruthResponse,
+        GroundTruthRequest, GroundTruthResponse, GroundTruthData,
         ApplyClusterSettingsRequest, ApplyClusterSettingsResponse,
     )
 
@@ -381,6 +381,24 @@ def register_routes(app):
         saved_at = datetime.now(timezone.utc).isoformat()
         store.upsert_ground_truth(page_id, body.text, saved_at)
         return GroundTruthResponse(page_id=page_id, saved_at=saved_at)
+
+    @router.get("/pages/{page_id}/ground-truth", response_model=GroundTruthData)
+    def get_ground_truth(page_id: str):
+        from documents import store
+
+        store.init_db()
+        if store.get_page(page_id) is None:
+            raise HTTPException(status_code=404, detail=f"Page '{page_id}' not found")
+
+        gt = store.get_ground_truth(page_id)
+        if gt is None:
+            raise HTTPException(status_code=404, detail="No ground truth saved for this page")
+
+        return GroundTruthData(
+            page_id=gt["page_id"],
+            text=gt["text"],
+            submitted_at=gt["submitted_at"],
+        )
 
     @router.post(
         "/documents/{doc_id}/apply-cluster-settings",
