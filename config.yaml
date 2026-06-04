@@ -85,6 +85,7 @@ lexicon:
   db_path: data/lexicons/lexicons.db   # single DB for both build and runtime
   hf_repo_id: ""                       # HuggingFace dataset repo, e.g. "username/ancient-ocr-lexicons"
   hf_token_env: "HF_TOKEN"             # env var name to read the HF API token from
+  quranic_morphology_path: "data/lexicons/quranic_corpus/quran-morphology.txt"
   sources:
     fixture:
       enabled: true
