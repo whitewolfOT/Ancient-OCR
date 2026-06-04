@@ -65,3 +65,79 @@ class FeedbackStatsResponse(BaseModel):
     pending: int
     by_source_file: dict[str, int]
     error_rate: float
+
+
+# ---------------------------------------------------------------------------
+# Document calibration schemas
+# ---------------------------------------------------------------------------
+
+class ClusterInfo(BaseModel):
+    cluster_id: str
+    label: str
+    page_count: int
+    representative_page_id: str
+
+
+class UploadResponse(BaseModel):
+    doc_id: str
+    page_count: int
+    clusters: list[ClusterInfo]
+
+
+class PageInfo(BaseModel):
+    page_id: str
+    page_num: int
+    cluster_id: str
+    similarity_to_representative: float
+    status: str
+    has_ground_truth: bool
+    has_settings: bool
+    thumbnail_url: str
+
+
+class PreviewRequest(BaseModel):
+    clahe: float = 2.0
+    denoise: int = 3
+    deskew_threshold: float = 0.5
+    binarization: str = "Adaptive"
+
+
+class SettingsApplied(BaseModel):
+    clahe: float
+    denoise: int
+    deskew_threshold: float
+    binarization: str
+
+
+class PreviewResponse(BaseModel):
+    preview_image_b64: str
+    settings_applied: SettingsApplied
+    preview_id: str
+    processing_time_ms: float
+
+
+class GroundTruthRequest(BaseModel):
+    text: str
+    page_id: str
+
+
+class GroundTruthResponse(BaseModel):
+    page_id: str
+    saved_at: str
+
+
+class ClusterSettingsPayload(BaseModel):
+    clahe: float = 2.0
+    denoise: int = 3
+    deskew_threshold: float = 0.5
+    binarization: str = "Adaptive"
+
+
+class ApplyClusterSettingsRequest(BaseModel):
+    cluster_id: str
+    settings: ClusterSettingsPayload
+
+
+class ApplyClusterSettingsResponse(BaseModel):
+    pages_updated: int
+    cluster_id: str

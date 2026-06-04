@@ -3,6 +3,7 @@ opencv-python-headless>=4.9
 pillow>=10.0
 numpy>=1.26
 pymupdf>=1.24
+imagehash>=4.3
 
 # ocr
 paddleocr>=2.7

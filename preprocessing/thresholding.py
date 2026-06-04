@@ -37,25 +37,41 @@ def apply_clahe(image: np.ndarray, config=None) -> np.ndarray:
 
 
 def adaptive_binarization(image: np.ndarray, config=None) -> np.ndarray:
-    """Adaptive Gaussian thresholding.
+    """Binarization with configurable method.
 
-    Preferred over global Otsu for documents with faint or uneven ink.
+    Reads config.preprocessing.binarize.method:
+      "adaptive" (default) — Gaussian adaptive thresholding
+      "otsu"               — Otsu's global thresholding
+      "global"             — fixed global threshold at 127
+
+    Adaptive is preferred for documents with uneven ink or lighting.
     """
     try:
         import cv2
     except ImportError as exc:
         raise RuntimeError("opencv-python-headless is required") from exc
 
-    block_size = 35
-    c_val = 10
+    method = "adaptive"
+    if config is not None:
+        b = getattr(getattr(config, "preprocessing", None), "binarize", None)
+        if b is not None:
+            method = getattr(b, "method", method).lower()
+
     gray = _ensure_gray(image, cv2)
-    result = cv2.adaptiveThreshold(
-        gray, 255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,
-        block_size, c_val,
-    )
-    log.debug("adaptive_binarization done")
+
+    if method == "otsu":
+        _, result = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    elif method == "global":
+        _, result = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+    else:
+        result = cv2.adaptiveThreshold(
+            gray, 255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            35, 10,
+        )
+
+    log.debug(f"binarization method={method}")
     return result
 
 
