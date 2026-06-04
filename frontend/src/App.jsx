@@ -8,13 +8,30 @@ import WorkflowBar from './components/WorkflowBar'
 import SimilarPagesPanel from './components/SimilarPagesPanel'
 
 export default function App() {
-  // null = upload screen; {docId, clusters} = document workspace
-  const [doc, setDoc] = useState(null)
+  const [doc, setDoc] = useState(null)               // { docId, clusters } | null
+  const [selectedPageId, setSelectedPageId] = useState(null)
+  const [selectedClusterId, setSelectedClusterId] = useState(null)
+  const [preprocessedB64, setPreprocessedB64] = useState(null)
 
   function handleUploadSuccess(docId, clusters) {
     setDoc({ docId, clusters })
+    setSelectedPageId(null)
+    setSelectedClusterId(null)
+    setPreprocessedB64(null)
   }
 
+  // PageSidebar calls onPageSelect(pageId, clusterId)
+  function handlePageSelect(pageId, clusterId) {
+    setSelectedPageId(pageId)
+    setSelectedClusterId(clusterId)
+    setPreprocessedB64(null)   // clear stale preview when navigating pages
+  }
+
+  function handlePreviewReady(b64 /*, settings, previewId */) {
+    setPreprocessedB64(b64)
+  }
+
+  // ── Upload screen ─────────────────────────────────────────────────────────
   if (!doc) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 p-8">
@@ -31,26 +48,40 @@ export default function App() {
     )
   }
 
-  // Placeholder workspace — replaced component by component in Phase 3
+  // ── Document workspace ───────────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 p-8">
-      <div className="mb-6 rounded-xl border border-gray-200 bg-white px-6 py-4 shadow-sm">
-        <p className="text-sm text-gray-500">Document loaded</p>
-        <p className="font-mono text-sm text-gray-800">{doc.docId}</p>
-        <p className="mt-1 text-sm text-gray-600">
-          {doc.clusters.length} cluster{doc.clusters.length !== 1 ? 's' : ''} ·{' '}
-          {doc.clusters.reduce((s, c) => s + c.page_count, 0)} page
-          {doc.clusters.reduce((s, c) => s + c.page_count, 0) !== 1 ? 's' : ''}
-        </p>
-        <button
-          className="mt-3 text-xs text-indigo-600 hover:underline"
-          onClick={() => setDoc(null)}
-        >
-          ← Upload another document
-        </button>
-      </div>
+    <div className="flex h-screen flex-col overflow-hidden bg-gray-50">
+      {/* WorkflowBar — stub, renders null until Component 6 */}
+      <WorkflowBar />
 
-      {/* WorkflowBar, PageSidebar, PageViewer etc. will slot in here */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: scrollable page list */}
+        <PageSidebar
+          docId={doc.docId}
+          selectedPageId={selectedPageId}
+          onPageSelect={handlePageSelect}
+        />
+
+        {/* Center: viewer stacked above controls */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <PageViewer
+            pageId={selectedPageId}
+            preprocessedImageB64={preprocessedB64}
+          />
+          <PreprocessingControls
+            pageId={selectedPageId}
+            docId={doc.docId}
+            clusterId={selectedClusterId}
+            onPreviewReady={handlePreviewReady}
+          />
+        </div>
+
+        {/* Right panel: GroundTruth + SimilarPages — stubs for now */}
+        <div className="hidden w-64 flex-shrink-0 border-l border-gray-200 bg-white xl:flex xl:flex-col">
+          <GroundTruthPanel />
+          <SimilarPagesPanel />
+        </div>
+      </div>
     </div>
   )
 }
