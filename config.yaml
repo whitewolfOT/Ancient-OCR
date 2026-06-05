@@ -20,6 +20,11 @@ preprocessing:
     max_angle: 15.0
     no_op_threshold: 0.5  # degrees; skip correction below this
     angle_steps: 100
+  degradation:
+    low_contrast_range: 100         # flag when 90% of pixels span < this many intensity levels
+    faded_ink_median: 200           # grayscale median > this → faded_ink
+    high_noise_laplacian: 500       # Laplacian variance > this → high_noise
+    bleed_through_dark_density: 0.05  # dark pixel fraction in lightest 20% of regions > this
   layout:
     enabled: true
     backend: opencv  # "opencv" | "layoutparser" (needs [layout] extra)
@@ -30,6 +35,7 @@ ocr:
     lang: ar
     weight: 0.6
     use_gpu: false
+    top_n_candidates: 3
   tesseract:
     enabled: true
     lang: ara

@@ -237,7 +237,10 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
                 morph_result = {"root_candidates": root_candidates}
 
             # Stage 7: lexicon + candidate pipeline
-            candidates = candidate_generator.generate(word_token, morph_result, cfg)
+            # Pass OCR confusion-pair alternatives for this token (from paddle_alternatives)
+            _page_ocr_alts = page_ocr.raw.get("paddle_alternatives", {}) if hasattr(page_ocr, "raw") else {}
+            _token_alts = _page_ocr_alts.get(word_token.text, [])
+            candidates = candidate_generator.generate(word_token, morph_result, cfg, ocr_alternatives=_token_alts)
             left_ctx = [ts.selected for ts in all_token_states if ts.selected and ts.decision != "reject"][-3:]
             right_ctx = []
             scored = [

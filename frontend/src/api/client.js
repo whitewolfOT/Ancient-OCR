@@ -102,3 +102,29 @@ export async function applyClusterSettings(docId, clusterId, settings) {
 export function getPageImageUrl(pageId) {
   return `${BASE_URL}/pages/${pageId}/image`
 }
+
+/**
+ * Run OCR on a page using its saved preprocessing settings.
+ * @param {string} pageId
+ * @returns {Promise<{page_id, word_count, decisions, tokens, processed_at}>}
+ */
+export async function runPageOCR(pageId) {
+  const { data } = await api.post(`/pages/${pageId}/ocr`)
+  return data
+}
+
+/**
+ * Fetch a previously saved OCR result for a page.
+ * Returns null if no OCR has been run yet (404 treated as empty).
+ * @param {string} pageId
+ * @returns {Promise<{page_id, word_count, decisions, tokens, processed_at} | null>}
+ */
+export async function getPageOCR(pageId) {
+  try {
+    const { data } = await api.get(`/pages/${pageId}/ocr`)
+    return data
+  } catch (err) {
+    if (err?.response?.status === 404) return null
+    throw err
+  }
+}

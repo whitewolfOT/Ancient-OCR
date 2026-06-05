@@ -109,11 +109,20 @@ class SettingsApplied(BaseModel):
     binarization: str
 
 
+class DegradationFlags(BaseModel):
+    low_contrast: bool = False
+    faded_ink: bool = False
+    high_noise: bool = False
+    bleed_through: bool = False
+
+
 class PreviewResponse(BaseModel):
     preview_image_b64: str
     settings_applied: SettingsApplied
     preview_id: str
     processing_time_ms: float
+    degradation_flags: DegradationFlags = DegradationFlags()
+    suggested_settings: dict = {}
 
 
 class GroundTruthRequest(BaseModel):
@@ -147,3 +156,19 @@ class ApplyClusterSettingsRequest(BaseModel):
 class ApplyClusterSettingsResponse(BaseModel):
     pages_updated: int
     cluster_id: str
+
+
+class OCRTokenResult(BaseModel):
+    text: str
+    bbox: list[int]      # [x1, y1, x2, y2]
+    confidence: float
+    decision: str
+    sources: list[str]
+
+
+class OCRResultResponse(BaseModel):
+    page_id: str
+    word_count: int
+    decisions: dict[str, int]
+    tokens: list[OCRTokenResult]
+    processed_at: str

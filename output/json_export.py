@@ -21,6 +21,7 @@ def build_annotated(token_states: list) -> dict:
             "decision": ts.decision,
             "reason_code": ts.reason_code,
             "sources": ts.sources,
+            "bbox": list(ts.bbox) if ts.bbox else None,
             "alternatives": [
                 {"text": c.text, "score": c.score, "reason": c.reason}
                 for c in (ts.candidates or [])

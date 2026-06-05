@@ -128,6 +128,11 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     raw = {"engines": {k: v.model_dump() for k, v in engine_results.items()}}
     if crop_bbox:
         raw["crop_bbox_in_page"] = list(crop_bbox)
+    # Pass through paddle alternatives for use by candidate_generator
+    if "paddle" in engine_results:
+        paddle_alts = engine_results["paddle"].raw.get("paddle_alternatives", {})
+        if paddle_alts:
+            raw["paddle_alternatives"] = paddle_alts
 
     return OCRResult(
         text=" ".join(texts),
@@ -151,6 +156,11 @@ def _with_crop_raw(result: OCRResult, engine_results: dict, crop_bbox) -> OCRRes
     raw = {"engines": {k: v.model_dump() for k, v in engine_results.items()}}
     if crop_bbox:
         raw["crop_bbox_in_page"] = list(crop_bbox)
+    # Pass through paddle_alternatives when paddle was the sole engine
+    if "paddle" in engine_results:
+        paddle_alts = engine_results["paddle"].raw.get("paddle_alternatives", {})
+        if paddle_alts:
+            raw["paddle_alternatives"] = paddle_alts
     return OCRResult(
         text=result.text, words=result.words, confidence=result.confidence,
         page_index=result.page_index, source=result.source, raw=raw,

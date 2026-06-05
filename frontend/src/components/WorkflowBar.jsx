@@ -7,7 +7,8 @@ const STEPS = [
   { id: 'export',    label: 'Export' },
 ]
 
-export default function WorkflowBar({ currentStep = 'calibrate' }) {
+export default function WorkflowBar({ currentStep: currentStepProp, hasOcrResults = false }) {
+  const currentStep = currentStepProp ?? (hasOcrResults ? 'review' : 'calibrate')
   const currentIdx = STEPS.findIndex((s) => s.id === currentStep)
 
   return (

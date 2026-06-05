@@ -127,36 +127,94 @@ def _load_image(path: Path, dpi: int) -> list[PageImage]:
     )]
 
 
-def classify_page(image: np.ndarray) -> dict:
+def classify_page(image: np.ndarray, config=None) -> dict:
     """Return heuristic quality flags for a page image.
 
     These are informational metadata — not filtering gates.
+    Thresholds read from config.preprocessing.degradation; hardcoded defaults
+    used when config is absent.
     """
     h, w = image.shape[:2]
     pixel_count = h * w
 
-    # Low-res heuristic: fewer than 300×300 effective pixels
+    # Degradation thresholds from config
+    _low_contrast_range = 100
+    _faded_ink_median = 200
+    _high_noise_laplacian = 500
+    _bleed_through_dark_density = 0.05
+    try:
+        dg = config.preprocessing.degradation
+        _low_contrast_range = getattr(dg, "low_contrast_range", _low_contrast_range)
+        _faded_ink_median = getattr(dg, "faded_ink_median", _faded_ink_median)
+        _high_noise_laplacian = getattr(dg, "high_noise_laplacian", _high_noise_laplacian)
+        _bleed_through_dark_density = getattr(dg, "bleed_through_dark_density", _bleed_through_dark_density)
+    except AttributeError:
+        pass
+
+    # Existing structural flags
     is_low_res = pixel_count < 90_000
-
-    # Skew heuristic: delegated to preprocessing; flag as unknown here
     likely_skewed = False
-
-    # Multi-column: wide aspect ratio suggests columns
     multi_column = (w / max(h, 1)) > 1.8
 
-    # Text density: fraction of dark pixels (rough proxy)
+    # Degradation flags — all default False so failures are safe
+    low_contrast = False
+    faded_ink = False
+    high_noise = False
+    bleed_through = False
+    text_density = 0.0
+
     try:
         import cv2
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) if image.ndim == 3 else image.copy()
+
+        # text_density: fraction of dark pixels
         _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         dark_pixels = int((binary == 0).sum())
         text_density = round(dark_pixels / max(pixel_count, 1), 4)
+
+        # low_contrast: 90% of pixels fall within < range intensity values
+        flat = gray.flatten()
+        flat.sort()
+        p05 = int(flat[int(len(flat) * 0.05)])
+        p95 = int(flat[int(len(flat) * 0.95)])
+        low_contrast = (p95 - p05) < _low_contrast_range
+
+        # faded_ink: median pixel value > threshold (mostly bright → faded)
+        faded_ink = float(np.median(gray)) > _faded_ink_median
+
+        # high_noise: Laplacian variance > threshold
+        lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        high_noise = lap_var > _high_noise_laplacian
+
+        # bleed_through: dark pixel density in the lightest 20% of grid cells
+        n_rows, n_cols = 5, 5
+        cell_h = max(h // n_rows, 1)
+        cell_w = max(w // n_cols, 1)
+        cell_means, cell_dark_fracs = [], []
+        for r in range(n_rows):
+            for c in range(n_cols):
+                cell = gray[r * cell_h:(r + 1) * cell_h, c * cell_w:(c + 1) * cell_w]
+                if cell.size == 0:
+                    continue
+                cell_means.append(float(cell.mean()))
+                _, cb = cv2.threshold(cell, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                cell_dark_fracs.append(float((cb == 0).sum() / cell.size))
+        if cell_means:
+            n_light = max(1, len(cell_means) // 5)
+            light_idxs = sorted(range(len(cell_means)), key=lambda i: cell_means[i], reverse=True)[:n_light]
+            avg_dark = float(np.mean([cell_dark_fracs[i] for i in light_idxs]))
+            bleed_through = avg_dark > _bleed_through_dark_density
+
     except Exception:
-        text_density = 0.0
+        pass
 
     return {
         "is_low_res": is_low_res,
         "likely_skewed": likely_skewed,
         "multi_column": multi_column,
         "text_density": text_density,
+        "low_contrast": low_contrast,
+        "faded_ink": faded_ink,
+        "high_noise": high_noise,
+        "bleed_through": bleed_through,
     }

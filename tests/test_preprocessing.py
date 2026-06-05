@@ -33,8 +33,13 @@ def test_metadata_values_valid():
     img = _make_image()
     _, meta = preprocess_image(img)
     valid = {"applied", "skipped", "failed"}
+    # degradation_flags and suggested_settings are dict-valued; skip them here
+    _dict_keys = {"degradation_flags", "suggested_settings"}
     for k, v in meta.items():
-        assert v in valid, f"step '{k}' has unexpected status '{v}'"
+        if k in _dict_keys:
+            assert isinstance(v, dict), f"step '{k}' should be a dict, got {type(v)}"
+        else:
+            assert v in valid, f"step '{k}' has unexpected status '{v}'"
 
 
 def test_output_is_numpy():
@@ -115,11 +120,13 @@ def test_failed_step_does_not_raise():
     """Inject a bad image to force a step failure; pipeline must not raise."""
     # A 1D array will cause CV ops to fail
     bad_img = np.array([1, 2, 3], dtype=np.uint8)
+    _dict_keys = {"degradation_flags", "suggested_settings"}
     try:
         out, meta = preprocess_image(bad_img)
-        # If it runs, at least one step should be failed or the output is returned
-        for v in meta.values():
-            assert v in ("applied", "skipped", "failed")
+        # If it runs, step-status values must be valid; dict-valued keys are exempt
+        for k, v in meta.items():
+            if k not in _dict_keys:
+                assert v in ("applied", "skipped", "failed")
     except Exception:
         # Totally unexpected raise — test should not reach here
         pytest.fail("preprocess_image raised an exception on bad input")

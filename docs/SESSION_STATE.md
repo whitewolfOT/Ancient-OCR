@@ -1,7 +1,7 @@
 # Session State — Ancient OCR
 
 ## Current state
-- 228 tests passing
+- 262 tests passing
 - Branch: claude/adoring-carson-UqiLp
 
 ## Frontend (frontend/)
@@ -15,9 +15,7 @@
 - Integration test passed — all 6 endpoints verified on real image
 
 ## What the frontend does NOT do yet
-- No OCR trigger from the UI — process button exists in WorkflowBar but is not wired
-- No OCR result overlay on PageViewer — bounding boxes not yet shown
-- WorkflowBar steps not navigable — display only
+- WorkflowBar steps not navigable — display only (step advances automatically when OCR runs)
 - SimilarPagesPanel only useful on multi-page documents
 - No export functionality
 
@@ -31,6 +29,15 @@
 - arabic_wordnet: 0 (enabled=False — globalwordnet.org 403 in container)
 
 ## What works right now
+- Degradation detection: classify_page() returns low_contrast, faded_ink, high_noise, bleed_through flags
+- suggest_settings_from_degradation() returns recommended CLAHE/denoise/binarization from flags
+- Preview endpoint returns degradation_flags + suggested_settings in response
+- Multi-hypothesis OCR: PaddleOCR confusion-pair alternatives (edit-distance-1) stored in OCRResult.raw["paddle_alternatives"]
+- Confusion pairs wired into candidate_generator as "ocr_alternative" candidates
+- OCR endpoint: POST /pages/{page_id}/ocr runs pipeline, saves to ocr_results table, returns token decisions+bboxes
+- GET /pages/{page_id}/ocr returns saved OCR result
+- PageViewer: "Run OCR" button, SVG confidence heatmap overlay (4 decision colors), show/hide heatmap toggle
+- WorkflowBar step advances to "review" when OCR results are present
 - Full pipeline end to end on real Arabic scans with Tesseract
 - Four-tier token gate: stopword → cache → OCR confidence → full resolution
 - Stopword filter ~500 words

@@ -1,4 +1,11 @@
-"""PaddleOCR Arabic backend — primary OCR engine (PaddleOCR 3.x API)."""
+"""PaddleOCR Arabic backend — primary OCR engine (PaddleOCR 3.x API).
+
+Multi-hypothesis note: PaddleOCR 3.x does not expose n-best alternative
+readings from its predict() API (only top-1 per line). Alternatives are
+generated via classical Arabic visual confusion pairs at edit-distance-1.
+Alternatives are stored in OCRResult.raw["paddle_alternatives"] and are
+NOT mixed into the words list.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +16,51 @@ from ocr_engine.schema import OCRResult, WordToken
 from utils.logging import get_logger
 
 log = get_logger(__name__)
+
+# Visual confusion pairs common in classical Arabic manuscripts.
+# Each tuple (a, b) means a and b are visually similar; substitution goes both ways.
+ARABIC_CONFUSION_PAIRS: list[tuple[str, str]] = [
+    ("ب", "ت"), ("ب", "ث"), ("ب", "ن"), ("ب", "ي"),
+    ("ج", "ح"), ("ج", "خ"),
+    ("ف", "ق"),
+    ("ص", "ض"),
+    ("ط", "ظ"),
+    ("د", "ذ"), ("ر", "ز"),
+]
+
+# Build a fast lookup: char → list of confused chars
+_CONFUSION_MAP: dict[str, list[str]] = {}
+for _a, _b in ARABIC_CONFUSION_PAIRS:
+    _CONFUSION_MAP.setdefault(_a, []).append(_b)
+    _CONFUSION_MAP.setdefault(_b, []).append(_a)
+
+
+def _generate_alternatives(
+    text: str,
+    primary_conf: float,
+    top_n: int = 3,
+) -> list[dict]:
+    """Generate up to top_n edit-distance-1 alternatives via confusion pairs.
+
+    Returns list of {text, confidence, source} dicts. Confidence is scaled
+    at primary_conf * 0.85 (below primary but non-trivial signal).
+    """
+    alt_conf = round(primary_conf * 0.85, 4)
+    seen: set[str] = {text}
+    alts: list[dict] = []
+
+    for i, ch in enumerate(text):
+        if ch not in _CONFUSION_MAP:
+            continue
+        for confused in _CONFUSION_MAP[ch]:
+            candidate = text[:i] + confused + text[i + 1:]
+            if candidate not in seen:
+                seen.add(candidate)
+                alts.append({"text": candidate, "confidence": alt_conf, "source": "paddle_alt"})
+            if len(alts) >= top_n:
+                return alts
+
+    return alts
 
 _paddle_available = False
 try:
@@ -79,6 +131,7 @@ class PaddleBackend(OCRBackend):
     name = "paddle"
 
     def __init__(self, config=None):
+        self._config = config
         self._lang = "ar"
         self._device = "cpu"
         self._use_textline_orientation = True
@@ -152,13 +205,30 @@ class PaddleBackend(OCRBackend):
         page_conf = float(np.mean([w.confidence for w in words])) if words else 0.0
         log.debug(f"paddle extract page={page_index} tokens={len(words)} conf={page_conf:.3f}")
 
+        # Multi-hypothesis: generate confusion-pair alternatives for each token.
+        # PaddleOCR 3.x predict() exposes only top-1 — alternatives are edit-distance-1
+        # substitutions via ARABIC_CONFUSION_PAIRS. Stored in raw, NOT in words.
+        top_n = 3
+        try:
+            paddle_cfg = getattr(getattr(self, "_config", None), "ocr", None)
+            if paddle_cfg:
+                top_n = getattr(getattr(paddle_cfg, "paddle", None), "top_n_candidates", top_n)
+        except Exception:
+            pass
+
+        paddle_alternatives: dict[str, list[dict]] = {}
+        for w in words:
+            alts = _generate_alternatives(w.text, w.confidence, top_n)
+            if alts:
+                paddle_alternatives[w.text] = alts
+
         return OCRResult(
             text=" ".join(texts),
             words=words,
             confidence=page_conf,
             page_index=page_index,
             source="paddle",
-            raw={"paddle_raw": raw},
+            raw={"paddle_raw": raw, "paddle_alternatives": paddle_alternatives},
         )
 
 

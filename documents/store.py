@@ -48,6 +48,11 @@ CREATE TABLE IF NOT EXISTS ground_truth (
     text         TEXT,
     submitted_at TEXT
 );
+CREATE TABLE IF NOT EXISTS ocr_results (
+    page_id      TEXT PRIMARY KEY,
+    result_json  TEXT,
+    processed_at TEXT
+);
 """
 
 
@@ -250,3 +255,36 @@ def get_ground_truth(page_id: str) -> dict | None:
     if row is None:
         return None
     return dict(zip(["page_id", "text", "submitted_at"], row))
+
+
+# ---------------------------------------------------------------------------
+# OCR results
+# ---------------------------------------------------------------------------
+
+def upsert_ocr_result(page_id: str, result_json: str, processed_at: str) -> None:
+    with _connect() as con:
+        con.execute(
+            "INSERT INTO ocr_results (page_id, result_json, processed_at) VALUES (?, ?, ?) "
+            "ON CONFLICT(page_id) DO UPDATE SET "
+            "result_json=excluded.result_json, processed_at=excluded.processed_at",
+            (page_id, result_json, processed_at),
+        )
+
+
+def get_ocr_result(page_id: str) -> dict | None:
+    with _connect() as con:
+        row = con.execute(
+            "SELECT page_id, result_json, processed_at FROM ocr_results WHERE page_id = ?",
+            (page_id,),
+        ).fetchone()
+    if row is None:
+        return None
+    return dict(zip(["page_id", "result_json", "processed_at"], row))
+
+
+def update_page_status(page_id: str, status: str) -> None:
+    with _connect() as con:
+        con.execute(
+            "UPDATE pages SET status = ? WHERE page_id = ?",
+            (status, page_id),
+        )

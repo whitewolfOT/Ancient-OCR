@@ -8,7 +8,12 @@ from utils.logging import get_logger
 log = get_logger(__name__)
 
 
-def generate(token, morph_result: dict | None, config=None) -> list[Candidate]:
+def generate(
+    token,
+    morph_result: dict | None,
+    config=None,
+    ocr_alternatives: list[dict] | None = None,
+) -> list[Candidate]:
     """Generate correction candidates for a WordToken.
 
     Sources:
@@ -96,6 +101,13 @@ def generate(token, morph_result: dict | None, config=None) -> list[Candidate]:
                         break
     except Exception as exc:
         log.debug(f"spelling variant search failed: {exc}")
+
+    # 6. OCR confusion-pair alternatives from paddle multi-hypothesis
+    for alt in (ocr_alternatives or []):
+        alt_text = alt.get("text", "")
+        if alt_text:
+            alt_entries = query(alt_text, config=config)
+            _add(alt_text, "ocr_alternative", alt_entries)
 
     log.debug(f"generate word={word!r} candidates={len(candidates)}")
     return candidates

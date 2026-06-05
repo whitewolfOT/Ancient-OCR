@@ -9,6 +9,30 @@ from utils.logging import get_logger
 log = get_logger(__name__)
 
 
+def suggest_settings_from_degradation(flags: dict, config=None) -> dict:
+    """Return suggested preprocessing settings from degradation flags.
+
+    Priority when multiple flags conflict: faded_ink > bleed_through > low_contrast.
+    high_noise overrides denoise independently (strongest denoise wins).
+    Returns an empty dict when no flags are set.
+    """
+    settings: dict = {}
+
+    if flags.get("faded_ink"):
+        settings["clahe"] = 6.0
+        settings["binarization"] = "OTSU"
+    elif flags.get("bleed_through"):
+        settings["binarization"] = "Adaptive"
+        settings["denoise"] = 7
+    elif flags.get("low_contrast"):
+        settings["clahe"] = 4.0
+
+    if flags.get("high_noise"):
+        settings["denoise"] = 9  # overrides bleed_through denoise
+
+    return settings
+
+
 def preprocess_image(
     image: np.ndarray,
     config=None,
@@ -30,10 +54,22 @@ def preprocess_image(
 
     Returns:
         (processed_image, metadata)  where metadata keys are step names and
-        values are 'applied' | 'skipped' | 'failed'.
+        values are 'applied' | 'skipped' | 'failed', plus 'degradation_flags'
+        and 'suggested_settings'.
     """
-    meta: dict[str, str] = {}
+    meta: dict = {}
     current = image.copy()
+
+    # Degradation detection on the original (pre-processing) image
+    try:
+        from ingest.document_loader import classify_page
+        flags = classify_page(image, config)
+        meta["degradation_flags"] = flags
+        meta["suggested_settings"] = suggest_settings_from_degradation(flags, config)
+    except Exception as exc:
+        log.debug(f"degradation detection failed: {exc}")
+        meta["degradation_flags"] = {}
+        meta["suggested_settings"] = {}
 
     # Step 0: DPI normalization — upscale low-res scans before all other steps
     target_dpi = 300

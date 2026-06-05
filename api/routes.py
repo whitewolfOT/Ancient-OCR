@@ -28,9 +28,10 @@ try:
         VALID_MODES,
         UploadResponse, ClusterInfo,
         PageInfo,
-        PreviewRequest, PreviewResponse, SettingsApplied,
+        PreviewRequest, PreviewResponse, SettingsApplied, DegradationFlags,
         GroundTruthRequest, GroundTruthResponse, GroundTruthData,
         ApplyClusterSettingsRequest, ApplyClusterSettingsResponse,
+        OCRResultResponse, OCRTokenResult,
     )
 except ImportError:
     pass
@@ -51,9 +52,10 @@ def register_routes(app):
         VALID_MODES,
         UploadResponse, ClusterInfo,
         PageInfo,
-        PreviewRequest, PreviewResponse, SettingsApplied,
+        PreviewRequest, PreviewResponse, SettingsApplied, DegradationFlags,
         GroundTruthRequest, GroundTruthResponse, GroundTruthData,
         ApplyClusterSettingsRequest, ApplyClusterSettingsResponse,
+        OCRResultResponse, OCRTokenResult,
     )
 
     router = APIRouter()
@@ -340,19 +342,24 @@ def register_routes(app):
             )
 
             t0 = time.monotonic()
-            result_img, _ = image_pipeline.preprocess_image(img, config=preview_cfg)
+            result_img, preview_meta = image_pipeline.preprocess_image(img, config=preview_cfg)
             elapsed_ms = (time.monotonic() - t0) * 1000.0
 
             # Encode result as JPEG base64
-            if result_img.ndim == 2:
-                encode_img = result_img
-            else:
-                encode_img = result_img
-            ok, buf = cv2.imencode(".jpg", encode_img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            ok, buf = cv2.imencode(".jpg", result_img, [cv2.IMWRITE_JPEG_QUALITY, 85])
             if not ok:
                 raise ValueError("JPEG encoding failed")
 
             b64 = base64.b64encode(buf.tobytes()).decode("ascii")
+
+            raw_flags = preview_meta.get("degradation_flags", {})
+            deg_flags = DegradationFlags(
+                low_contrast=bool(raw_flags.get("low_contrast", False)),
+                faded_ink=bool(raw_flags.get("faded_ink", False)),
+                high_noise=bool(raw_flags.get("high_noise", False)),
+                bleed_through=bool(raw_flags.get("bleed_through", False)),
+            )
+            suggested = preview_meta.get("suggested_settings", {})
 
         except Exception as exc:
             log.warning(f"preview_page {page_id} failed: {exc}")
@@ -368,6 +375,8 @@ def register_routes(app):
             ),
             preview_id=str(uuid.uuid4()),
             processing_time_ms=round(elapsed_ms, 1),
+            degradation_flags=deg_flags,
+            suggested_settings=suggested,
         )
 
     @router.post("/pages/{page_id}/ground-truth", response_model=GroundTruthResponse)
@@ -430,6 +439,130 @@ def register_routes(app):
             pages_updated=len(pages),
             cluster_id=body.cluster_id,
         )
+
+    @router.post("/pages/{page_id}/ocr", response_model=OCRResultResponse)
+    def run_page_ocr(page_id: str):
+        import json as _json
+        from documents import store
+
+        store.init_db()
+        page = store.get_page(page_id)
+        if page is None:
+            raise HTTPException(status_code=404, detail=f"Page '{page_id}' not found")
+
+        try:
+            import cv2 as _cv2
+            import numpy as _np
+            from main import run_pipeline
+            from utils.config import get_config
+
+            base_cfg = get_config()
+
+            # Apply saved page settings if present
+            saved = store.get_page_settings(page_id)
+
+            class _NS:
+                def __init__(self, **kw):
+                    for k, v in kw.items():
+                        setattr(self, k, v)
+
+            if saved:
+                ocr_cfg = _NS(
+                    preprocessing=_NS(
+                        target_dpi=300,
+                        clahe=_NS(enabled=True, clip_limit=saved["clahe"], tile_grid=[8, 8]),
+                        denoise=_NS(enabled=True, kernel_size=saved["denoise"], method="median"),
+                        deskew=_NS(
+                            enabled=True,
+                            no_op_threshold=saved["deskew_threshold"],
+                            max_angle=15.0,
+                            angle_steps=100,
+                        ),
+                        binarize=_NS(method=saved["binarization"].lower()),
+                    ),
+                    ocr=base_cfg.ocr,
+                    normalization=base_cfg.normalization,
+                    morphology=base_cfg.morphology,
+                    lexicon=base_cfg.lexicon,
+                    scoring=base_cfg.scoring,
+                    decision=base_cfg.decision,
+                    context_scorer=base_cfg.context_scorer,
+                    output=base_cfg.output,
+                    cache=base_cfg.cache,
+                    logging=base_cfg.logging,
+                )
+            else:
+                ocr_cfg = base_cfg
+
+            img = _cv2.imread(page["image_path"])
+            if img is None:
+                raise ValueError(f"Cannot read image at {page['image_path']}")
+
+            page_image = {
+                "image": img,
+                "page_index": page["page_num"],
+                "dpi": 300,
+                "source_path": page["image_path"],
+                "page_count": 1,
+            }
+
+            annotated = run_pipeline([page_image], mode="annotated", cfg=ocr_cfg)
+
+        except Exception as exc:
+            log.warning(f"run_page_ocr {page_id} failed: {exc}")
+            raise HTTPException(status_code=500, detail=str(exc))
+
+        # Build structured response from annotated output
+        raw_tokens = annotated.get("tokens", [])
+        decision_counts = {"accept": 0, "accept_with_note": 0, "uncertain": 0, "review_required": 0}
+
+        ocr_tokens: list[OCRTokenResult] = []
+        for t in raw_tokens:
+            dec = t.get("decision", "")
+            if dec in decision_counts:
+                decision_counts[dec] += 1
+            raw_bbox = t.get("bbox")
+            if raw_bbox and len(raw_bbox) == 4:
+                x, y, w, h = raw_bbox
+                bbox_out = [x, y, x + w, y + h]
+            else:
+                bbox_out = [0, 0, 0, 0]
+            ocr_tokens.append(OCRTokenResult(
+                text=t.get("selected") or t.get("original", ""),
+                bbox=bbox_out,
+                confidence=round(float(t.get("confidence", 0.0)), 4),
+                decision=dec,
+                sources=t.get("sources", []),
+            ))
+
+        processed_at = datetime.now(timezone.utc).isoformat()
+        result_payload = {
+            "page_id": page_id,
+            "word_count": len(ocr_tokens),
+            "decisions": decision_counts,
+            "tokens": [t.model_dump() for t in ocr_tokens],
+            "processed_at": processed_at,
+        }
+
+        store.upsert_ocr_result(page_id, _json.dumps(result_payload), processed_at)
+        store.update_page_status(page_id, "ocr_done")
+
+        return OCRResultResponse(**result_payload)
+
+    @router.get("/pages/{page_id}/ocr", response_model=OCRResultResponse)
+    def get_page_ocr(page_id: str):
+        import json as _json
+        from documents import store
+
+        store.init_db()
+        if store.get_page(page_id) is None:
+            raise HTTPException(status_code=404, detail=f"Page '{page_id}' not found")
+
+        saved = store.get_ocr_result(page_id)
+        if saved is None:
+            raise HTTPException(status_code=404, detail="No OCR result for this page yet")
+
+        return OCRResultResponse(**_json.loads(saved["result_json"]))
 
     @router.get("/pages/{page_id}/image")
     def serve_page_image(page_id: str):
