@@ -1,8 +1,25 @@
 # Session State — Ancient OCR
 
 ## Current state
-- 205 tests passing
+- 228 tests passing
 - Branch: claude/adoring-carson-UqiLp
+
+## Frontend (frontend/)
+- React app with Vite + Tailwind CSS
+- 7 components built: UploadZone, PageSidebar, PageViewer, PreprocessingControls, GroundTruthPanel, WorkflowBar, SimilarPagesPanel
+- 6 backend endpoints: upload, pages list, preview, ground truth (GET+POST), apply cluster settings, page image
+- pHash clustering with connected components + medoid representative
+- Debounced preprocessing preview (300ms, stale response guard via reqCounter)
+- RTL Arabic ground truth textarea
+- data/documents/documents.db for document state
+- Integration test passed — all 6 endpoints verified on real image
+
+## What the frontend does NOT do yet
+- No OCR trigger from the UI — process button exists in WorkflowBar but is not wired
+- No OCR result overlay on PageViewer — bounding boxes not yet shown
+- WorkflowBar steps not navigable — display only
+- SimilarPagesPanel only useful on multi-page documents
+- No export functionality
 
 ## Lexicon DB (data/lexicons/lexicons.db)
 - Total: 187,451 entries
