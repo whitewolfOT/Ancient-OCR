@@ -375,6 +375,8 @@ def register_routes(app):
         from documents import store
 
         store.init_db()
+        if not body.text.strip():
+            raise HTTPException(status_code=422, detail="text must not be empty")
         if store.get_page(page_id) is None:
             raise HTTPException(status_code=404, detail=f"Page '{page_id}' not found")
 

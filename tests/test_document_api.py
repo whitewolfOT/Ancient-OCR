@@ -240,6 +240,22 @@ class TestGroundTruth:
         )
         assert resp.status_code == 404
 
+    def test_empty_ground_truth_rejected(self, client):
+        page_id = self._page_id(client)
+        resp = client.post(
+            f"/pages/{page_id}/ground-truth",
+            json={"text": "", "page_id": page_id},
+        )
+        assert resp.status_code == 422
+
+    def test_whitespace_ground_truth_rejected(self, client):
+        page_id = self._page_id(client)
+        resp = client.post(
+            f"/pages/{page_id}/ground-truth",
+            json={"text": "   ", "page_id": page_id},
+        )
+        assert resp.status_code == 422
+
     def test_get_returns_404_before_save(self, client):
         page_id = self._page_id(client)
         resp = client.get(f"/pages/{page_id}/ground-truth")
