@@ -17,6 +17,9 @@ venv/
 .cache/
 *.db
 
+# Runtime document storage (uploaded pages + SQLite)
+data/documents/
+
 # IDE
 .idea/
 .vscode/
