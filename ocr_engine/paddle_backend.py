@@ -9,6 +9,7 @@ NOT mixed into the words list.
 
 from __future__ import annotations
 
+import cv2
 import numpy as np
 
 from ocr_engine.base import OCRBackend
@@ -149,6 +150,12 @@ class PaddleBackend(OCRBackend):
             raise RuntimeError(
                 "PaddleOCR model unavailable (init failed — check logs for details)"
             )
+
+        # PaddleOCR 3.x requires 3-channel BGR; preprocess_image() outputs grayscale
+        if image.ndim == 2:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+        elif image.ndim == 3 and image.shape[2] == 1:
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
         # PaddleOCR 3.x: predict() returns a generator; list() materialises it.
         # result[0] is the single-image dict with keys:
