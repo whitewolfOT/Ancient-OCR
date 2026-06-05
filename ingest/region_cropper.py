@@ -18,14 +18,30 @@ class RegionCrop(TypedDict):
     type: str
 
 
-def crop_regions(page_image: np.ndarray, regions: list[dict]) -> list[RegionCrop]:
+def crop_regions(page_image: np.ndarray, regions: list[dict], config=None) -> list[RegionCrop]:
     """Crop each detected layout region from the page image.
+
+    When config.preprocessing.skip_region_crop_for_paddle is True, returns a
+    single full-page crop regardless of detected regions. PaddleOCR 3.x runs
+    its own internal layout analysis, so pre-cropping is unnecessary and
+    crashes on small regions.
 
     If regions is empty, returns one crop covering the full page with
     region_id='full'.
 
     All returned crops are independent numpy arrays (copied, not views).
     """
+    _skip = getattr(getattr(config, "preprocessing", None), "skip_region_crop_for_paddle", False)
+    if _skip:
+        h, w = page_image.shape[:2]
+        log.debug("skip_region_crop_for_paddle=True — returning full-page crop")
+        return [RegionCrop(
+            image=page_image.copy(),
+            region_id="full",
+            bbox_in_page=(0, 0, w, h),
+            type="text_block",
+        )]
+
     if not regions:
         h, w = page_image.shape[:2]
         regions = [{"x": 0, "y": 0, "w": w, "h": h, "type": "text_block", "region_id": "full"}]

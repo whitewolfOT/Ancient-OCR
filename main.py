@@ -101,20 +101,24 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
         )
         log.debug(f"preprocess page={page_index} steps={list(preprocess_meta.keys())}")
 
-        # Stage 3: layout detection + region cropping
-        regions = layout_detection.detect_layout(processed_image, cfg)
-        crops = region_cropper.crop_regions(processed_image, regions)
+        # Stage 3 & 4: layout detection + OCR
+        # When skip_region_crop_for_paddle is True, bypass region cropping and
+        # run the ensemble on the full page — PaddleOCR 3.x performs its own
+        # internal layout analysis and crashes on small pre-cropped regions.
+        _skip_crop = getattr(getattr(cfg, "preprocessing", None), "skip_region_crop_for_paddle", False)
 
-        # Stage 4: OCR per region + stitch
-        region_results = []
-        for crop in crops:
-            ocr_result = ensemble.run_ensemble(crop["image"], page_index, cfg)
-            # Translate crop-space bboxes to page-space before stitching
-            region_results.append((crop, ocr_result))
-
-        page_ocr = region_cropper.stitch_results(
-            [r for _, r in region_results], page_index
-        )
+        if _skip_crop:
+            page_ocr = ensemble.run_ensemble(processed_image, page_index, cfg)
+        else:
+            regions = layout_detection.detect_layout(processed_image, cfg)
+            crops = region_cropper.crop_regions(processed_image, regions)
+            region_results = []
+            for crop in crops:
+                ocr_result = ensemble.run_ensemble(crop["image"], page_index, cfg)
+                region_results.append((crop, ocr_result))
+            page_ocr = region_cropper.stitch_results(
+                [r for _, r in region_results], page_index
+            )
         all_raw_ocr.append(page_ocr)
 
         # Pre-filter: discard glyph fragments and non-Arabic noise before scoring
