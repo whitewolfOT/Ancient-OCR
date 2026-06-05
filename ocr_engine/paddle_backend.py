@@ -62,6 +62,7 @@ def _generate_alternatives(
 
     return alts
 
+
 _paddle_available = False
 try:
     from paddleocr import PaddleOCR as _PaddleOCR  # noqa: F401
@@ -70,22 +71,18 @@ except ImportError:
     log.warning("paddleocr not installed; PaddleOCR backend disabled")
 
 # Module-level cached model instance; None = not yet initialised.
-# _model_init_failed = True means the last init attempt raised an exception
-# (network unavailable, 403 from model servers, missing weights, etc.).
 _model: object | None = None
 _model_init_failed: bool = False
 
 
-def _get_model(
-    lang: str = "ar",
-    device: str = "cpu",
-    use_textline_orientation: bool = True,
-    model_dir: str | None = None,
-) -> object | None:
+def _get_model(lang: str = "ar", model_dir: str | None = None) -> object | None:
     """Return the cached PaddleOCR model instance, initialising on first call.
 
-    Returns None and sets ``_model_init_failed`` if initialisation fails for
-    any reason (missing models, no network access, 403 from model servers).
+    PaddleOCR 3.x only accepts lang= (and optional model dir overrides).
+    All other constructor arguments (use_gpu, device, use_textline_orientation,
+    show_log, use_angle_cls) raise ValueError: Unknown argument in 3.x.
+
+    Returns None and sets _model_init_failed if initialisation fails.
     """
     global _model, _model_init_failed
     if _model_init_failed:
@@ -95,23 +92,14 @@ def _get_model(
     try:
         from paddleocr import PaddleOCR
 
-        kwargs: dict = dict(
-            lang=lang,
-            # PaddleOCR 3.x: device replaces use_gpu. Passed via **kwargs →
-            # parse_common_args → create_pipeline(device=...).
-            device=device,
-            use_textline_orientation=use_textline_orientation,
-        )
+        kwargs: dict = {"lang": lang}
 
         if model_dir:
-            # Pre-supplied models: skip the lang-based network download by
-            # pointing directly at local inference model directories.
+            # Pre-supplied models: skip lang-based network download.
             # Convention: model_dir/{det,rec} holding PaddleX inference models.
-            # Users can also set text_detection_model_dir /
-            # text_recognition_model_dir independently via future config keys.
             kwargs["text_detection_model_dir"] = model_dir
             kwargs["text_recognition_model_dir"] = model_dir
-            kwargs.pop("lang", None)
+            del kwargs["lang"]
 
         _model = PaddleOCR(**kwargs)
         log.debug("PaddleOCR model loaded")
@@ -133,74 +121,62 @@ class PaddleBackend(OCRBackend):
     def __init__(self, config=None):
         self._config = config
         self._lang = "ar"
-        self._device = "cpu"
-        self._use_textline_orientation = True
         self._model_dir: str | None = None
         if config is not None:
             p = getattr(getattr(config, "ocr", None), "paddle", None)
             if p is not None:
                 self._lang = getattr(p, "lang", self._lang)
-                # use_gpu (legacy config key) → device string
-                use_gpu = getattr(p, "use_gpu", False)
-                self._device = "gpu" if use_gpu else "cpu"
                 self._model_dir = getattr(p, "model_dir", None)
 
     @classmethod
     def is_available(cls) -> bool:
-        """Return True only if PaddleOCR is installed AND the model can init.
-
-        The first call attempts model initialisation with default parameters.
-        If it fails (network blocked, models absent), the failure is cached and
-        this method returns False for all subsequent calls in the same process.
-        """
+        """Return True only if PaddleOCR is installed AND the model can init."""
         if not _paddle_available:
             return False
-        model = _get_model()
-        return model is not None
+        try:
+            from paddleocr import PaddleOCR
+            PaddleOCR(lang="ar")
+            return True
+        except Exception:
+            return False
 
     def extract(self, image: np.ndarray, page_index: int = 0) -> OCRResult:
         if not _paddle_available:
             raise RuntimeError("PaddleOCR is not installed")
 
-        model = _get_model(
-            lang=self._lang,
-            device=self._device,
-            use_textline_orientation=self._use_textline_orientation,
-            model_dir=self._model_dir,
-        )
+        model = _get_model(lang=self._lang, model_dir=self._model_dir)
         if model is None:
             raise RuntimeError(
                 "PaddleOCR model unavailable (init failed — check logs for details)"
             )
 
-        # PaddleOCR 3.x: predict() returns a list of result objects, one per
-        # input image. Each result is dict-like with keys:
-        #   rec_texts  — list[str]             recognised text per line
-        #   rec_scores — list[float]           confidence per line
-        #   rec_polys  — list[array(4×2)]      4-corner polygon per line
-        #   rec_boxes  — list[array(4,)]       axis-aligned bbox per line
-        raw = model.predict(image)
+        # PaddleOCR 3.x: predict() returns a generator; list() materialises it.
+        # result[0] is the single-image dict with keys:
+        #   rec_texts  — list[str]           recognised text per line
+        #   rec_scores — list[float]         confidence per line
+        #   rec_polys  — list[ndarray(4,2)]  4-corner polygon per line
+        raw_list = list(model.predict(image))
+        data = raw_list[0] if raw_list else {}
+
+        rec_texts: list[str] = data.get("rec_texts", []) if data else []
+        rec_scores: list[float] = data.get("rec_scores", []) if data else []
+        rec_polys = data.get("rec_polys", []) if data else []
 
         words: list[WordToken] = []
         texts: list[str] = []
 
-        for page_result in (raw or []):
-            rec_texts = page_result.get("rec_texts", []) if page_result else []
-            rec_scores = page_result.get("rec_scores", []) if page_result else []
-            rec_polys = page_result.get("rec_polys", []) if page_result else []
-
-            for idx, text in enumerate(rec_texts):
-                conf = float(rec_scores[idx]) if idx < len(rec_scores) else 0.0
-                polys = rec_polys[idx] if idx < len(rec_polys) else None
-                bbox = _polys_to_xywh(polys) if polys is not None else (0, 0, 0, 0)
-                words.append(WordToken(
-                    text=str(text),
-                    confidence=conf,
-                    bbox=bbox,
-                    page_index=page_index,
-                    source="paddle",
-                ))
-                texts.append(str(text))
+        for idx, text in enumerate(rec_texts):
+            conf = float(rec_scores[idx]) if idx < len(rec_scores) else 0.0
+            poly = rec_polys[idx] if idx < len(rec_polys) else None
+            bbox = _polys_to_xywh(poly) if poly is not None else (0, 0, 0, 0)
+            words.append(WordToken(
+                text=str(text),
+                confidence=conf,
+                bbox=bbox,
+                page_index=page_index,
+                source="paddle",
+            ))
+            texts.append(str(text))
 
         page_conf = float(np.mean([w.confidence for w in words])) if words else 0.0
         log.debug(f"paddle extract page={page_index} tokens={len(words)} conf={page_conf:.3f}")
@@ -210,9 +186,9 @@ class PaddleBackend(OCRBackend):
         # substitutions via ARABIC_CONFUSION_PAIRS. Stored in raw, NOT in words.
         top_n = 3
         try:
-            paddle_cfg = getattr(getattr(self, "_config", None), "ocr", None)
+            paddle_cfg = getattr(getattr(self._config, "ocr", None), "paddle", None)
             if paddle_cfg:
-                top_n = getattr(getattr(paddle_cfg, "paddle", None), "top_n_candidates", top_n)
+                top_n = getattr(paddle_cfg, "top_n_candidates", top_n)
         except Exception:
             pass
 
@@ -228,7 +204,7 @@ class PaddleBackend(OCRBackend):
             confidence=page_conf,
             page_index=page_index,
             source="paddle",
-            raw={"paddle_raw": raw, "paddle_alternatives": paddle_alternatives},
+            raw={"paddle_raw": raw_list, "paddle_alternatives": paddle_alternatives},
         )
 
 

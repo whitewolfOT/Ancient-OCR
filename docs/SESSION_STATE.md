@@ -1,7 +1,7 @@
 # Session State — Ancient OCR
 
 ## Current state
-- 262 tests passing
+- 272 tests passing
 - Branch: claude/adoring-carson-UqiLp
 
 ## Frontend (frontend/)
