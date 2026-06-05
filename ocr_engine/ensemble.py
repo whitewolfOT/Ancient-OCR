@@ -9,6 +9,37 @@ from utils.logging import get_logger
 
 log = get_logger(__name__)
 
+# Module-level backend singletons — each backend loads its models once per
+# process. Creating a new instance per crop would reload all 5 PaddleOCR
+# models on every region, which is prohibitively slow.
+_paddle_instance = None
+_tess_instance = None
+_trocr_instance = None
+
+
+def _get_paddle(config):
+    global _paddle_instance
+    if _paddle_instance is None:
+        from ocr_engine.paddle_backend import PaddleBackend
+        _paddle_instance = PaddleBackend(config)
+    return _paddle_instance
+
+
+def _get_tess(config):
+    global _tess_instance
+    if _tess_instance is None:
+        from ocr_engine.tesseract_backend import TesseractBackend
+        _tess_instance = TesseractBackend(config)
+    return _tess_instance
+
+
+def _get_trocr(config):
+    global _trocr_instance
+    if _trocr_instance is None:
+        from ocr_engine.trocr_backend import TrOCRBackend
+        _trocr_instance = TrOCRBackend(config)
+    return _trocr_instance
+
 
 def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = None) -> OCRResult:
     """Run all enabled OCR backends and merge their results.
@@ -30,7 +61,6 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     """
     from ocr_engine.paddle_backend import PaddleBackend
     from ocr_engine.tesseract_backend import TesseractBackend
-    from ocr_engine.trocr_backend import TrOCRBackend
     from alignment.token_matcher import match_tokens
 
     paddle_cfg = getattr(getattr(config, "ocr", None), "paddle", None)
@@ -53,7 +83,7 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     # --- Run backends ---
     if paddle_enabled and PaddleBackend.is_available():
         try:
-            result = PaddleBackend(config).extract(image, page_index)
+            result = _get_paddle(config).extract(image, page_index)
             engine_results["paddle"] = result
             token_lists.append(result.words)
             weights.append(paddle_weight)
@@ -62,7 +92,7 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
 
     if tess_enabled and TesseractBackend.is_available():
         try:
-            result = TesseractBackend(config).extract(image, page_index)
+            result = _get_tess(config).extract(image, page_index)
             engine_results["tesseract"] = result
             token_lists.append(result.words)
             weights.append(tess_weight)
@@ -83,7 +113,7 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     merged_words: list[WordToken] = []
     texts: list[str] = []
 
-    trocr_backend = TrOCRBackend(config) if trocr_enabled else None
+    trocr_backend = _get_trocr(config) if trocr_enabled else None
 
     for cluster in clusters:
         # Weighted vote: best text = token with highest weight*confidence

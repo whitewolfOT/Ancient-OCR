@@ -156,11 +156,20 @@ class PaddleBackend(OCRBackend):
         #   rec_scores — list[float]         confidence per line
         #   rec_polys  — list[ndarray(4,2)]  4-corner polygon per line
         raw_list = list(model.predict(image))
-        data = raw_list[0] if raw_list else {}
+        if not raw_list:
+            return OCRResult(text="", words=[], confidence=0.0,
+                             page_index=page_index, source="paddle",
+                             raw={"paddle_raw": [], "paddle_alternatives": {}})
 
-        rec_texts: list[str] = data.get("rec_texts", []) if data else []
-        rec_scores: list[float] = data.get("rec_scores", []) if data else []
-        rec_polys = data.get("rec_polys", []) if data else []
+        data = raw_list[0]
+        rec_texts: list[str] = (data.get("rec_texts") or []) if data else []
+        rec_scores: list[float] = (data.get("rec_scores") or []) if data else []
+        rec_polys = (data.get("rec_polys") or []) if data else []
+
+        if not rec_texts:
+            return OCRResult(text="", words=[], confidence=0.0,
+                             page_index=page_index, source="paddle",
+                             raw={"paddle_raw": raw_list, "paddle_alternatives": {}})
 
         words: list[WordToken] = []
         texts: list[str] = []
