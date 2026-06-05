@@ -12,6 +12,8 @@ export default function App() {
   const [selectedPageId, setSelectedPageId] = useState(null)
   const [selectedClusterId, setSelectedClusterId] = useState(null)
   const [preprocessedB64, setPreprocessedB64] = useState(null)
+  // Incrementing this remounts PageSidebar, re-fetching page list with updated status icons
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
 
   function handleUploadSuccess(docId, clusters) {
     setDoc({ docId, clusters })
@@ -51,12 +53,12 @@ export default function App() {
   // ── Document workspace ───────────────────────────────────────────────────
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gray-50">
-      {/* WorkflowBar — stub, renders null until Component 6 */}
-      <WorkflowBar />
+      <WorkflowBar currentStep="calibrate" />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Left: scrollable page list */}
+        {/* Left: scrollable page list — key remounts on GT save to refresh status icons */}
         <PageSidebar
+          key={sidebarRefreshKey}
           docId={doc.docId}
           selectedPageId={selectedPageId}
           onPageSelect={handlePageSelect}
@@ -76,16 +78,20 @@ export default function App() {
           />
         </div>
 
-        {/* Right panel: GroundTruth + SimilarPages */}
+        {/* Right panel — hidden below xl breakpoint */}
         <div className="hidden w-64 flex-shrink-0 border-l border-gray-200 bg-white xl:flex xl:flex-col">
           <GroundTruthPanel
             pageId={selectedPageId}
-            onSubmitted={() => {/* sidebar dot refresh handled via PageSidebar reload */}}
+            onSubmitted={() => setSidebarRefreshKey((k) => k + 1)}
           />
-          <SimilarPagesPanel />
+          <SimilarPagesPanel
+            docId={doc.docId}
+            currentPageId={selectedPageId}
+            clusterId={selectedClusterId}
+            onPageSelect={handlePageSelect}
+          />
         </div>
       </div>
     </div>
   )
 }
-
