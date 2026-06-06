@@ -543,7 +543,7 @@ def _parse_openiti_markdown(source: SourceConfig) -> list[LexiconEntry]:
         log.info(f"openiti source '{source.name}' path not found; skipping")
         return []
 
-    txt_files = sorted(base.glob("*.txt")) + sorted(base.glob("**/*.txt"))
+    txt_files = sorted(set(base.glob("**/*.txt")))
     if not txt_files:
         log.warning(f"openiti: no .txt files in {base}")
         return []
@@ -883,6 +883,10 @@ def _parse_arabic_wordnet_lmf(source: SourceConfig) -> list[LexiconEntry]:
 
     log.info(f"arabic_wordnet: parsed entries={len(entries)} from {file_path.name}")
     return entries
+
+
+# Public alias so scripts can call parse_openiti_markdown(source) directly
+parse_openiti_markdown = _parse_openiti_markdown
 
 
 # ---------------------------------------------------------------------------

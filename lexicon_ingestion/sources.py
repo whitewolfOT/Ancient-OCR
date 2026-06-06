@@ -100,6 +100,17 @@ SOURCES: list[SourceConfig] = [
         book_name="Arabic Roots and Derivatives (from Taj al-Arus)",
     ),
     SourceConfig(
+        name="ibn_awwam_filaha",
+        enabled=True,
+        priority=4,
+        era="classical",
+        license="openiti_pd",
+        path="data/lexicons/ibn_awwam/",
+        parser_adapter="openiti",
+        domain="agriculture",
+        book_name="Kitāb al-Filāḥa — Ibn al-ʿAwwām al-Ishbīlī (c. 12th c.)",
+    ),
+    SourceConfig(
         name="wordnet",
         enabled=False,
         priority=3,
