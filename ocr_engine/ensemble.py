@@ -15,6 +15,7 @@ log = get_logger(__name__)
 _paddle_instance = None
 _tess_instance = None
 _trocr_instance = None
+_kraken_instance = None
 
 
 def _get_paddle(config):
@@ -41,7 +42,16 @@ def _get_trocr(config):
     return _trocr_instance
 
 
-def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = None) -> OCRResult:
+def _get_kraken(config, profile=None):
+    global _kraken_instance
+    if _kraken_instance is None:
+        from ocr_engine.kraken_backend import KrakenBackend
+        _kraken_instance = KrakenBackend(config=config, profile=profile)
+    return _kraken_instance
+
+
+def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = None,
+                 profile=None) -> OCRResult:
     """Run all enabled OCR backends and merge their results.
 
     Args:
@@ -66,6 +76,7 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     paddle_cfg = getattr(getattr(config, "ocr", None), "paddle", None)
     tess_cfg = getattr(getattr(config, "ocr", None), "tesseract", None)
     trocr_cfg = getattr(getattr(config, "ocr", None), "trocr", None)
+    kraken_cfg = getattr(config, "kraken", None)
 
     paddle_weight = getattr(paddle_cfg, "weight", 0.6)
     tess_weight = getattr(tess_cfg, "weight", 0.4)
@@ -75,6 +86,7 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     paddle_enabled = getattr(paddle_cfg, "enabled", True)
     tess_enabled = getattr(tess_cfg, "enabled", True)
     trocr_enabled = getattr(trocr_cfg, "enabled", False)
+    kraken_enabled = getattr(kraken_cfg, "enabled", False)
 
     engine_results: dict[str, OCRResult] = {}
     token_lists: list[list[WordToken]] = []
@@ -98,6 +110,17 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
             weights.append(tess_weight)
         except Exception as exc:
             log.warning(f"tesseract extract failed: {exc}")
+
+    if kraken_enabled:
+        from ocr_engine.kraken_backend import KrakenBackend
+        if KrakenBackend.is_available():
+            try:
+                result = _get_kraken(config, profile).process_image(image, page_index)
+                engine_results["kraken"] = result
+                token_lists.append(result.words)
+                weights.append(0.7)  # Kraken weight — configurable in future
+            except Exception as exc:
+                log.warning(f"kraken extract failed: {exc}")
 
     # Handle zero or one backend
     if not engine_results:
