@@ -7,7 +7,18 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from ocr_engine.profile_loader import ProfileManager, OCRProfile
+
 _ARABIC_RE = re.compile(r'[؀-ۿ]')
+
+_profile_manager: ProfileManager | None = None
+
+
+def get_profile_manager() -> ProfileManager:
+    global _profile_manager
+    if _profile_manager is None:
+        _profile_manager = ProfileManager(Path("config/profiles.yaml"))
+    return _profile_manager
 
 
 def _require(module: str) -> Any:
@@ -22,7 +33,8 @@ def _require(module: str) -> Any:
         ) from exc
 
 
-def process_file(file_path: str, mode: str = "clean") -> dict:
+def process_file(file_path: str, mode: str = "clean",
+                 profile_name: str = "default") -> dict:
     """Top-level entry point: ingest one file and return formatted output.
 
     Pipeline order (canonical — must match MASTER_PLAN §1):
@@ -36,20 +48,23 @@ def process_file(file_path: str, mode: str = "clean") -> dict:
 
     cfg = get_config()
     log = get_logger(__name__)
-    log.info(f"process_file path={file_path} mode={mode}")
+    log.info(f"process_file path={file_path} mode={mode} profile={profile_name}")
 
     if mode not in ("clean", "annotated", "debug"):
         raise ValueError(f"Invalid mode '{mode}'. Must be clean | annotated | debug.")
+
+    profile = get_profile_manager().get(profile_name)
 
     # --- Stage 1: document loading ---
     doc_loader = _require("ingest.document_loader")
     pages = doc_loader.load_document(file_path)
     log.info(f"loaded page_count={len(pages)}")
 
-    return run_pipeline(pages, mode=mode, cfg=cfg)
+    return run_pipeline(pages, mode=mode, cfg=cfg, profile=profile)
 
 
-def run_pipeline(pages: list, mode: str = "clean", cfg=None) -> dict:
+def run_pipeline(pages: list, mode: str = "clean", cfg=None,
+                 profile: OCRProfile | None = None) -> dict:
     """Run the full pipeline over already-loaded pages.
 
     Each stage is imported inside _require() so that a missing module produces
