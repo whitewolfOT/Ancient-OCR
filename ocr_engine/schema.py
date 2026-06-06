@@ -12,8 +12,10 @@ class WordToken(BaseModel):
     confidence: float          # 0..1
     bbox: tuple[int, int, int, int]  # x, y, w, h (top-left origin, page space)
     page_index: int
-    source: str                # "paddle" | "tesseract" | "trocr" | "ensemble"
+    source: str                # "paddle" | "tesseract" | "trocr" | "kraken" | "ensemble"
     region_id: str | None = None  # set by region_cropper; None = full-page
+    line_id: str | None = None    # Kraken line UUID from segment JSON
+    baseline: list[tuple[int, int]] | None = None  # raw baseline points, page-space (Kraken only)
 
 
 class OCRResult(BaseModel):

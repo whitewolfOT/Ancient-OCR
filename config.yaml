@@ -186,3 +186,36 @@ logging:
 training:
   feedback_db: data/feedback/feedback.db
   min_feedback_for_calibration: 50
+
+profiles:
+  enabled: true
+  profiles_file: "config/profiles.yaml"
+  active_profile: "default"
+
+kraken:
+  enabled: false
+  seg_model: "zenodo:14295555"
+  rec_model: "agapet"
+  rec_model_secondary: "muharaf"
+  n_best: 3
+  rtl: true
+  binarizer: "nlbin"
+  device: "cpu"
+  model_dir: "models/kraken"
+
+align:
+  passim:
+    enabled: false
+    threshold: 0.85
+    window_chars: 2000
+    fallback: "rapidfuzz"
+
+lexicon:
+  confusion_costs:
+    dot_pairs:      0.78
+    body_pairs:     0.74
+    qaf_faa:        0.77
+    emphatic_pairs: 0.81
+    tail_pairs:     0.84
+    taa_haa:        0.68
+    default:        0.85

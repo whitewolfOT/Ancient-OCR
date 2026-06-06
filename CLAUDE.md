@@ -38,6 +38,21 @@ Two interfaces: FastAPI API + CLI. No separate frontend required.
 ├── cli/                       ← main.py, commands.py
 ├── utils/                     ← config.py, logging.py, cache.py
 ├── eval/                      ← metrics.py, benchmark.py
+├── config/
+│   ├── profiles.yaml          ← user-editable manuscript profiles (NEW)
+├── ocr_engine/
+│   ├── ...existing...
+│   ├── kraken_backend.py      ← Kraken HTR engine, profile-driven (NEW)
+│   ├── profile_loader.py      ← OCRProfile + ProfileManager (NEW)
+├── preprocessing/
+│   ├── ...existing...
+│   ├── adjustments.py         ← brightness/contrast/gamma/stroke/denoise/sharpen (NEW)
+├── align/
+│   ├── __init__.py            ← new top-level package (NEW)
+│   └── openiti.py             ← Passim / rapidfuzz alignment against Ibn al-Awwam (NEW)
+├── ui/
+│   ├── streamlit_app.py       ← 4-tab Streamlit frontend (NEW, [ui] extra)
+│   └── api_client.py          ← single API call module for Streamlit (NEW)
 ├── tests/
 ├── data/                      ← lexicon raw + built indexes (gitignored)
 └── models/                    ← downloaded/finetuned weights (gitignored)
@@ -66,6 +81,19 @@ Two interfaces: FastAPI API + CLI. No separate frontend required.
 16. cli/: main → commands
 17. tests/ + eval/
 18. README.md
+
+Sprint V2 (after Phase 18):
+0-A  WordToken schema extension + config.yaml additions
+0-B  config/profiles.yaml + ocr_engine/profile_loader.py
+0-C  preprocessing/adjustments.py + image_pipeline.py integration
+1    ocr_engine/kraken_backend.py (profile-driven, Muharaf seg + Agapet rec)
+2    lexicon_ingestion: ibn_awwam_filaha source + parser + ingest script
+3    align/openiti.py (Passim/rapidfuzz post-scoring alignment)
+4    output/review_export.py — Kraken baseline coordinate support
+5    lexicon_engine/candidate_generator.py — weighted confusion costs
+6    api/server.py — add /api/preview, /api/profiles, /api/suggest_profile routes
+7    ui/streamlit_app.py + ui/api_client.py
+8    Integration smoke-test
 ```
 
 ---
@@ -78,9 +106,12 @@ Use **Pydantic v2**. All models must be JSON-serializable. Build these in step 3
 class WordToken(BaseModel):
     text: str
     confidence: float           # 0..1
-    bbox: tuple[int,int,int,int]  # x, y, w, h
+    bbox: tuple[int,int,int,int]  # x, y, w, h — always populated, page-space
     page_index: int
-    source: str                 # "paddle"|"tesseract"|"trocr"|"ensemble"
+    source: str                 # "paddle"|"tesseract"|"trocr"|"kraken"|"ensemble"
+    region_id: str | None = None
+    line_id: str | None = None             # Kraken line UUID from segment JSON
+    baseline: list[tuple[int, int]] | None = None  # raw baseline points, page-space (Kraken only)
 
 class OCRResult(BaseModel):
     text: str
@@ -118,7 +149,21 @@ class TokenState(BaseModel):
     sources: list[str]
     decision: str               # "accept"|"accept_with_note"|"uncertain"|"review_required"
     reason_code: str
+
+@dataclass
+class AlignmentResult:
+    corrected_text: str
+    ocr_text: str
+    confidence: float            # Levenshtein ratio of best match
+    method: str                  # "passim" | "rapidfuzz"
+    accepted: bool               # confidence >= config.align.passim.threshold
+    match_start: int
+    match_end: int
 ```
+
+Rules for WordToken:
+- `bbox` is always populated even for Kraken tokens. Compute from baseline polygon: `x=min_x, y=min_y, w=max_x−min_x, h=max_y−min_y`.
+- `baseline` and `line_id` are None for Paddle/Tesseract/TrOCR tokens.
 
 ---
 
@@ -133,6 +178,10 @@ class TokenState(BaseModel):
 7. **Graceful degradation.** Missing optional dep/model/lexicon → log it, disable that signal, continue.
 8. **Every module independently unit-testable** with no heavy dependencies.
 9. Classical and modern lexicon evidence stay tagged and separable.
+10. `review_required` and `uncertain` tokens are NEVER silently corrected. They go to the review queue and must be explicitly resolved by a human.
+11. Feedback never auto-applies. Stored corrections require explicit calibration trigger (/calibrate endpoint or calibrator.py).
+12. Profiles are additive configuration. Changing a profile changes output but never changes stored lexicon entries, TokenState records, or feedback data.
+13. Alignment accepted results go into aligned_text on the page result only. They never overwrite TokenState.selected.
 
 ---
 
@@ -198,6 +247,31 @@ Decision thresholds (from `config.decision`):
 - Optional masked-LM (AraBERT) behind `[lm]` extra + config flag.
 - Without it the confidence formula silently zeroes out a 20% weight — that is not acceptable.
 
+**Profiles:**
+- All processing parameters live in config/profiles.yaml, not config.yaml.
+- config.yaml only holds: profiles.enabled, profiles_file, active_profile.
+- "default" profile is protected — cannot be deleted.
+- profile_loader.ProfileManager is instantiated lazily (not at import time).
+- Every backend, preprocessing call, and API route that touches processing parameters must accept an OCRProfile, not bare config values.
+
+**Kraken:**
+- Kraken backend is optional — if not installed, is_available() returns False, pipeline continues.
+- Binarizer choice (nlbin/sauvola/otsu) is backend's job, not image_pipeline.py's.
+- nlbin is Kraken-internal and must not be called outside the Kraken workflow.
+- General preprocessing (brightness, contrast, gamma, etc.) runs in image_pipeline.py before the backend is called.
+- Kraken models download lazily inside process_image(), never in __init__().
+
+**Streamlit UI:**
+- Lives in ui/. Optional dependency group [ui] = ["streamlit>=1.35", "Pillow>=10"].
+- All API calls go through ui/api_client.py — never inline requests calls.
+- API base URL from API_BASE_URL env var, default http://localhost:8000.
+
+**Passim alignment:**
+- Alignment is a post-scoring layer only. Never called from lexicon_engine/.
+- Called from main.py after confidence_engine/decision.py, before output/formatter.py.
+- Results go into aligned_text on the page result. They NEVER overwrite TokenState.selected.
+- Fallback to rapidfuzz if Java absent. Skip entirely if both absent.
+
 ---
 
 ## Running the system
@@ -217,6 +291,18 @@ pytest tests/
 
 # Benchmark
 python -m eval.benchmark --data ./data/benchmark/
+
+# Install UI dependencies
+pip install ".[ui]" --break-system-packages
+
+# Start Streamlit (in a second terminal)
+streamlit run ui/streamlit_app.py
+
+# Run OCR with a named profile
+python -m cli.main process input.pdf --mode annotated --profile andalusian_naskh
+
+# Ingest Ibn al-Awwam lexicon (one-time, requires network)
+python scripts/ingest_ibn_awwam.py
 ```
 
 ---
@@ -229,6 +315,35 @@ python -m eval.benchmark --data ./data/benchmark/
 4. Enable in `config.yaml` under `lexicon.sources`.
 
 No other files need changing.
+
+Agricultural domain sources follow the same 4-step process. ibn_awwam_filaha is already added. To add another OpenITI text:
+1. Add LexiconSource entry in sources.py with correct OpenITI GitHub raw URL.
+2. Reuse parse_openiti_markdown() in parser.py (it handles all OpenITI mARkdown).
+3. Run ingest script.
+4. Enable in config.yaml.
+Note: OpenITI texts produce vocabulary coverage entries only (no gloss/root).
+
+---
+
+## Profile system
+
+Profiles are named sets of processing parameters in config/profiles.yaml.
+A profile controls: binarizer choice, seg/rec model handles, N-best count,
+RTL setting, device, and all preprocessing adjustments.
+
+Built-in profiles:
+- default            — printed Arabic, clean scan
+- andalusian_naskh   — Ibn al-Awwam manuscript, Agapet primary
+- maghrebi_degraded  — Sauvola binarizer, stroke normalization on
+- low_contrast       — high brightness/contrast boost
+
+Users add custom profiles via the Streamlit UI (Tab 1) or by editing
+config/profiles.yaml directly. The "default" profile cannot be deleted.
+
+Profile selection in CLI: --profile <name>
+Profile selection in API: profile_name form field on all processing endpoints.
+Profile creation/editing in UI: Profile Manager tab.
+Live preview of profile effects: Live Preview tab (sliders without saving).
 
 ---
 
