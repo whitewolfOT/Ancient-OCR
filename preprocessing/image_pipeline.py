@@ -37,6 +37,7 @@ def preprocess_image(
     image: np.ndarray,
     config=None,
     source_dpi: int | None = None,
+    profile=None,
 ) -> tuple[np.ndarray, dict]:
     """Run enabled preprocessing steps in canonical order.
 
@@ -116,6 +117,16 @@ def preprocess_image(
         lambda img: _do_binarize(img, config),
     )
 
+    # Step 5: profile-driven fine adjustments (after general preprocessing)
+    if profile is not None:
+        current, meta = _run_step(
+            "profile_adjustments", current, meta,
+            True,
+            lambda img: _do_profile_adjustments(img, profile),
+        )
+    else:
+        meta["profile_adjustments"] = "skipped"
+
     log.debug(f"preprocess_image steps={meta}")
     return current, meta
 
@@ -163,6 +174,11 @@ def _do_deskew(image: np.ndarray, config) -> np.ndarray:
 def _do_binarize(image: np.ndarray, config) -> np.ndarray:
     from preprocessing.thresholding import adaptive_binarization
     return adaptive_binarization(image, config)
+
+
+def _do_profile_adjustments(image: np.ndarray, profile) -> np.ndarray:
+    from preprocessing.adjustments import apply_profile_adjustments
+    return apply_profile_adjustments(image, profile.preprocessing)
 
 
 def _do_dpi_normalize(image: np.ndarray, source_dpi: int, target_dpi: int) -> np.ndarray:
