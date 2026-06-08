@@ -68,6 +68,7 @@ def export_review_queue(
             None,
         )
 
+        baseline = getattr(ts, "baseline", None)
         items.append({
             "token_id": token_id,
             "original": ts.original,
@@ -81,6 +82,8 @@ def export_review_queue(
             "bbox": list(ts.bbox) if ts.bbox else None,
             "page_index": ts.page_index,
             "suggestion": suggestion,
+            "line_id": getattr(ts, "line_id", None),
+            "baseline": [list(pt) for pt in baseline] if baseline else None,
         })
 
     log.debug(f"review_queue source={source_file} total_tokens={len(token_states)} review={len(items)}")
@@ -145,7 +148,11 @@ def to_review_html(queue: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def _extract_crop(ts, image_pages, crop_dir: str, token_id: str) -> str | None:
-    """Save the token's bbox crop as a PNG; return the path or None."""
+    """Save the token's bbox crop as a PNG; return the path or None.
+
+    Kraken tokens: if ts.baseline is set, draws a red baseline overlay on the crop
+    so reviewers can verify segmentation quality alongside the text.
+    """
     if not ts.bbox or image_pages is None:
         return None
     try:
@@ -162,7 +169,15 @@ def _extract_crop(ts, image_pages, crop_dir: str, token_id: str) -> str | None:
         if x2 <= x or y2 <= y:
             return None
 
-        crop = page_img[y:y2, x:x2]
+        crop = page_img[y:y2, x:x2].copy()
+
+        baseline = getattr(ts, "baseline", None)
+        if baseline and len(baseline) >= 2:
+            # Translate page-space baseline points into crop-local coords
+            pts = [(max(0, int(bx) - x), max(0, int(by) - y)) for bx, by in baseline]
+            for i in range(len(pts) - 1):
+                cv2.line(crop, pts[i], pts[i + 1], (0, 0, 255), 1, cv2.LINE_AA)
+
         out_dir = Path(crop_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = str(out_dir / f"{token_id}.png")

@@ -45,6 +45,8 @@ class TokenState(BaseModel):
     reason_code: str
     bbox: tuple[int, int, int, int] | None = None  # page-space; needed for review crops
     page_index: int = 0
+    line_id: str | None = None                     # Kraken line UUID (None for other backends)
+    baseline: list[tuple[int, int]] | None = None  # Kraken baseline points, page-space
 
 
 class FeedbackEntry(BaseModel):
@@ -71,6 +73,8 @@ def build_token_state(
     reason_code: str,
     bbox: tuple[int, int, int, int] | None = None,
     page_index: int = 0,
+    line_id: str | None = None,
+    baseline: list[tuple[int, int]] | None = None,
 ) -> TokenState:
     sources = list({e.source for c in candidates for e in c.lexicon_entries})
     return TokenState(
@@ -85,4 +89,6 @@ def build_token_state(
         reason_code=reason_code,
         bbox=bbox,
         page_index=page_index,
+        line_id=line_id,
+        baseline=baseline,
     )
