@@ -172,3 +172,55 @@ class OCRResultResponse(BaseModel):
     decisions: dict[str, int]
     tokens: list[OCRTokenResult]
     processed_at: str
+
+
+# ---------------------------------------------------------------------------
+# Profile management schemas (Step 6)
+# ---------------------------------------------------------------------------
+
+class StrokeNormalizationSchema(BaseModel):
+    enabled: bool = False
+    target_width: int = 2
+
+
+class ProfilePreprocessingSchema(BaseModel):
+    brightness: int = 0
+    contrast: float = 1.0
+    gamma: float = 1.0
+    saturation: float = 1.0
+    stroke_normalization: StrokeNormalizationSchema = StrokeNormalizationSchema()
+    denoise_strength: int = 0
+    sharpen: float = 0.0
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: str | None = None
+    description: str = ""
+    binarizer: str = "otsu"
+    seg_model: str = "zenodo:14295555"
+    rec_model: str = "agapet"
+    rec_model_secondary: str | None = None
+    n_best: int = 3
+    rtl: bool = True
+    device: str = "cpu"
+    preprocessing: ProfilePreprocessingSchema = ProfilePreprocessingSchema()
+
+
+class ProfileListResponse(BaseModel):
+    profiles: list[str]
+
+
+class ProfileSuggestResponse(BaseModel):
+    suggested_profile: str
+    confidence: float
+
+
+class CorrectionSubmitRequest(BaseModel):
+    token_id: str
+    corrected_text: str
+    original_text: str
+
+
+class CorrectionSubmitResponse(BaseModel):
+    status: str
+    entry_id: str

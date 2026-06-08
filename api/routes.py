@@ -32,9 +32,23 @@ try:
         GroundTruthRequest, GroundTruthResponse, GroundTruthData,
         ApplyClusterSettingsRequest, ApplyClusterSettingsResponse,
         OCRResultResponse, OCRTokenResult,
+        ProfileUpdateRequest, ProfileListResponse,
+        ProfileSuggestResponse,
+        CorrectionSubmitRequest, CorrectionSubmitResponse,
     )
 except ImportError:
     pass
+
+# Lazy profile manager singleton — initialised on first route call, not at import
+_profile_mgr = None
+
+
+def _get_profile_mgr():
+    global _profile_mgr
+    if _profile_mgr is None:
+        from ocr_engine.profile_loader import ProfileManager
+        _profile_mgr = ProfileManager(Path("config/profiles.yaml"))
+    return _profile_mgr
 
 
 def register_routes(app):
@@ -579,5 +593,165 @@ def register_routes(app):
             raise HTTPException(status_code=404, detail="Image file not found on disk")
 
         return FileResponse(str(img_path), media_type="image/jpeg")
+
+    # ── POST /api/preview ─────────────────────────────────────────────────
+    @router.post("/api/preview")
+    async def api_preview(
+        file: UploadFile = File(...),
+        profile_name: str = Form("default"),
+        brightness:       float = Form(0.0),
+        contrast:         float = Form(1.0),
+        gamma:            float = Form(1.0),
+        saturation:       float = Form(1.0),
+        stroke_enabled:   bool  = Form(False),
+        stroke_width:     int   = Form(2),
+        denoise_strength: int   = Form(0),
+        sharpen:          float = Form(0.0),
+    ):
+        import copy
+        import base64
+        import cv2 as _cv2
+        import numpy as _np
+        from preprocessing.adjustments import apply_profile_adjustments
+
+        mgr = _get_profile_mgr()
+        profile = copy.deepcopy(mgr.get(profile_name))
+        profile.preprocessing.brightness = int(brightness)
+        profile.preprocessing.contrast = contrast
+        profile.preprocessing.gamma = gamma
+        profile.preprocessing.saturation = saturation
+        profile.preprocessing.stroke_normalization_enabled = stroke_enabled
+        profile.preprocessing.stroke_target_width = stroke_width
+        profile.preprocessing.denoise_strength = int(denoise_strength)
+        profile.preprocessing.sharpen = sharpen
+
+        contents = await file.read()
+        img = _cv2.imdecode(_np.frombuffer(contents, _np.uint8), _cv2.IMREAD_COLOR)
+        if img is None:
+            raise HTTPException(status_code=400, detail="Could not decode image")
+
+        processed = apply_profile_adjustments(img, profile.preprocessing)
+        _, buf = _cv2.imencode(".jpg", processed, [_cv2.IMWRITE_JPEG_QUALITY, 85])
+        b64 = base64.b64encode(buf).decode()
+        return {"processed_image_b64": b64, "profile_used": profile_name}
+
+    # ── GET /api/profiles ──────────────────────────────────────────────────
+    @router.get("/api/profiles", response_model=ProfileListResponse)
+    def api_list_profiles():
+        return ProfileListResponse(profiles=_get_profile_mgr().list())
+
+    # ── GET /api/profiles/{name} ───────────────────────────────────────────
+    @router.get("/api/profiles/{name}")
+    def api_get_profile(name: str):
+        p = _get_profile_mgr().get(name)
+        return {
+            "name": p.name,
+            "description": p.description,
+            "binarizer": p.binarizer,
+            "seg_model": p.seg_model,
+            "rec_model": p.rec_model,
+            "rec_model_secondary": p.rec_model_secondary,
+            "n_best": p.n_best,
+            "rtl": p.rtl,
+            "device": p.device,
+            "preprocessing": {
+                "brightness": p.preprocessing.brightness,
+                "contrast": p.preprocessing.contrast,
+                "gamma": p.preprocessing.gamma,
+                "saturation": p.preprocessing.saturation,
+                "stroke_normalization": {
+                    "enabled": p.preprocessing.stroke_normalization_enabled,
+                    "target_width": p.preprocessing.stroke_target_width,
+                },
+                "denoise_strength": p.preprocessing.denoise_strength,
+                "sharpen": p.preprocessing.sharpen,
+            },
+        }
+
+    # ── PUT /api/profiles/{name} ───────────────────────────────────────────
+    @router.put("/api/profiles/{name}")
+    async def api_update_profile(name: str, body: ProfileUpdateRequest):
+        from ocr_engine.profile_loader import OCRProfile, PreprocessingParams
+
+        profile_name = body.name or name
+        pp = body.preprocessing
+        sn = pp.stroke_normalization
+        pre = PreprocessingParams(
+            brightness=int(pp.brightness),
+            contrast=float(pp.contrast),
+            gamma=float(pp.gamma),
+            saturation=float(pp.saturation),
+            stroke_normalization_enabled=bool(sn.enabled),
+            stroke_target_width=int(sn.target_width),
+            denoise_strength=int(pp.denoise_strength),
+            sharpen=float(pp.sharpen),
+        )
+        profile = OCRProfile(
+            name=profile_name,
+            description=body.description,
+            binarizer=body.binarizer,
+            seg_model=body.seg_model,
+            rec_model=body.rec_model,
+            rec_model_secondary=body.rec_model_secondary,
+            n_best=body.n_best,
+            rtl=body.rtl,
+            device=body.device,
+            preprocessing=pre,
+        )
+        mgr = _get_profile_mgr()
+        mgr.upsert(profile)
+        mgr.save()
+        return {"status": "saved", "name": profile_name}
+
+    # ── DELETE /api/profiles/{name} ────────────────────────────────────────
+    @router.delete("/api/profiles/{name}")
+    def api_delete_profile(name: str):
+        mgr = _get_profile_mgr()
+        if not mgr.delete(name):
+            raise HTTPException(status_code=403, detail="Cannot delete protected profile")
+        mgr.save()
+        return {"status": "deleted", "name": name}
+
+    # ── POST /api/suggest_profile ──────────────────────────────────────────
+    @router.post("/api/suggest_profile", response_model=ProfileSuggestResponse)
+    async def api_suggest_profile(file: UploadFile = File(...)):
+        import numpy as _np
+        import cv2 as _cv2
+
+        contents = await file.read()
+        img = _cv2.imdecode(_np.frombuffer(contents, _np.uint8), _cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            return ProfileSuggestResponse(suggested_profile="default", confidence=0.0)
+
+        mean_brightness = float(_np.mean(img))
+        std = float(_np.std(img))
+
+        if mean_brightness < 100:
+            return ProfileSuggestResponse(suggested_profile="low_contrast", confidence=0.6)
+        elif std < 30:
+            return ProfileSuggestResponse(suggested_profile="low_contrast", confidence=0.5)
+        else:
+            return ProfileSuggestResponse(suggested_profile="default", confidence=0.9)
+
+    # ── POST /api/correction ───────────────────────────────────────────────
+    @router.post("/api/correction", response_model=CorrectionSubmitResponse)
+    async def api_correction(body: CorrectionSubmitRequest):
+        import uuid as _uuid
+        from datetime import datetime, timezone
+        from training.feedback_store import submit
+        from confidence_engine.state import FeedbackEntry
+
+        entry = FeedbackEntry(
+            id=str(_uuid.uuid4()),
+            image_path="",
+            bbox=(0, 0, 0, 0),
+            page_index=0,
+            predicted=body.original_text,
+            ground_truth=body.corrected_text,
+            source_file=body.token_id,
+            submitted_at=datetime.now(timezone.utc).isoformat(),
+        )
+        entry_id = submit(entry)
+        return CorrectionSubmitResponse(status="stored", entry_id=entry_id)
 
     app.include_router(router)
