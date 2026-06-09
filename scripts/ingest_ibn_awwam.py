@@ -1,3 +1,4 @@
+# Deferred: source text not yet available. Will be populated from OCR output once manuscript pages are processed.
 """
 Ingest Ibn al-ʿAwwām al-Filāḥa from OpenITI mARkdown.
 
