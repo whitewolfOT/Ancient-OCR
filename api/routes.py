@@ -35,6 +35,7 @@ try:
         ProfileUpdateRequest, ProfileListResponse,
         ProfileSuggestResponse,
         CorrectionSubmitRequest, CorrectionSubmitResponse,
+        LineGroundTruthRequest, LineGroundTruthResponse, LineGroundTruthItem,
     )
 except ImportError:
     pass
@@ -732,6 +733,68 @@ def register_routes(app):
             return ProfileSuggestResponse(suggested_profile="low_contrast", confidence=0.5)
         else:
             return ProfileSuggestResponse(suggested_profile="default", confidence=0.9)
+
+    # ── GET /api/suggest_profile_for_page/{page_id} ───────────────────────
+    @router.get("/api/suggest_profile_for_page/{page_id}",
+                response_model=ProfileSuggestResponse)
+    def api_suggest_profile_for_page(page_id: str):
+        import numpy as _np
+        import cv2 as _cv2
+        from documents import store
+
+        store.init_db()
+        page = store.get_page(page_id)
+        if page is None:
+            raise HTTPException(status_code=404, detail=f"Page '{page_id}' not found")
+
+        img = _cv2.imread(page["image_path"], _cv2.IMREAD_GRAYSCALE)
+        if img is None:
+            return ProfileSuggestResponse(suggested_profile="default", confidence=0.0)
+
+        mean_b = float(_np.mean(img))
+        std_b = float(_np.std(img))
+        if mean_b < 100:
+            return ProfileSuggestResponse(suggested_profile="low_contrast", confidence=0.6)
+        elif std_b < 30:
+            return ProfileSuggestResponse(suggested_profile="low_contrast", confidence=0.5)
+        else:
+            return ProfileSuggestResponse(suggested_profile="default", confidence=0.9)
+
+    # ── POST /pages/{page_id}/line-ground-truth ────────────────────────────
+    @router.post("/pages/{page_id}/line-ground-truth",
+                 response_model=LineGroundTruthResponse)
+    def save_line_ground_truth(page_id: str, body: LineGroundTruthRequest):
+        from documents import store
+
+        store.init_db()
+        if store.get_page(page_id) is None:
+            raise HTTPException(status_code=404, detail=f"Page '{page_id}' not found")
+        if not body.lines:
+            raise HTTPException(status_code=422, detail="lines must not be empty")
+
+        saved_at = datetime.now(timezone.utc).isoformat()
+        store.upsert_line_ground_truth(page_id, body.lines, saved_at)
+        items = [LineGroundTruthItem(line_index=i, text=t, submitted_at=saved_at)
+                 for i, t in enumerate(body.lines)]
+        return LineGroundTruthResponse(page_id=page_id, lines=items, saved_at=saved_at)
+
+    # ── GET /pages/{page_id}/line-ground-truth ─────────────────────────────
+    @router.get("/pages/{page_id}/line-ground-truth",
+                response_model=LineGroundTruthResponse)
+    def get_line_ground_truth(page_id: str):
+        from documents import store
+
+        store.init_db()
+        if store.get_page(page_id) is None:
+            raise HTTPException(status_code=404, detail=f"Page '{page_id}' not found")
+
+        rows = store.get_line_ground_truth(page_id)
+        if rows is None:
+            raise HTTPException(status_code=404, detail="No line ground truth for this page")
+
+        items = [LineGroundTruthItem(**r) for r in rows]
+        saved_at = rows[0]["submitted_at"] if rows else ""
+        return LineGroundTruthResponse(page_id=page_id, lines=items, saved_at=saved_at)
 
     # ── POST /api/correction ───────────────────────────────────────────────
     @router.post("/api/correction", response_model=CorrectionSubmitResponse)

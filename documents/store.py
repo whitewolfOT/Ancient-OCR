@@ -53,6 +53,13 @@ CREATE TABLE IF NOT EXISTS ocr_results (
     result_json  TEXT,
     processed_at TEXT
 );
+CREATE TABLE IF NOT EXISTS line_ground_truth (
+    page_id      TEXT NOT NULL,
+    line_index   INTEGER NOT NULL,
+    text         TEXT NOT NULL,
+    submitted_at TEXT NOT NULL,
+    PRIMARY KEY (page_id, line_index)
+);
 """
 
 
@@ -288,3 +295,28 @@ def update_page_status(page_id: str, status: str) -> None:
             "UPDATE pages SET status = ? WHERE page_id = ?",
             (status, page_id),
         )
+
+
+def upsert_line_ground_truth(page_id: str, lines: list[str], submitted_at: str) -> None:
+    """Replace all line ground truth entries for a page atomically."""
+    with _connect() as con:
+        con.execute("DELETE FROM line_ground_truth WHERE page_id = ?", (page_id,))
+        for idx, text in enumerate(lines):
+            con.execute(
+                "INSERT INTO line_ground_truth (page_id, line_index, text, submitted_at)"
+                " VALUES (?, ?, ?, ?)",
+                (page_id, idx, text, submitted_at),
+            )
+
+
+def get_line_ground_truth(page_id: str) -> list[dict] | None:
+    """Return [{line_index, text, submitted_at}] or None if not saved."""
+    with _connect() as con:
+        rows = con.execute(
+            "SELECT line_index, text, submitted_at FROM line_ground_truth"
+            " WHERE page_id = ? ORDER BY line_index",
+            (page_id,),
+        ).fetchall()
+    if not rows:
+        return None
+    return [{"line_index": r[0], "text": r[1], "submitted_at": r[2]} for r in rows]

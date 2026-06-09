@@ -128,3 +128,44 @@ export async function getPageOCR(pageId) {
     throw err
   }
 }
+
+/** List all available OCR profile names. */
+export async function listProfiles() {
+  const { data } = await api.get('/api/profiles')
+  return data.profiles   // string[]
+}
+
+/**
+ * Suggest an OCR profile for a page using its stored image (server-side analysis).
+ * @returns {Promise<{suggested_profile: string, confidence: number}>}
+ */
+export async function suggestProfileForPage(pageId) {
+  const { data } = await api.get(`/api/suggest_profile_for_page/${pageId}`)
+  return data
+}
+
+/** Save per-line ground truth for a page. */
+export async function submitLineGroundTruth(pageId, lines) {
+  const { data } = await api.post(`/pages/${pageId}/line-ground-truth`, { lines })
+  return data
+}
+
+/**
+ * Fetch saved per-line ground truth. Returns null if none saved.
+ * @returns {Promise<{page_id, lines: [{line_index, text, submitted_at}], saved_at} | null>}
+ */
+export async function getLineGroundTruth(pageId) {
+  try {
+    const { data } = await api.get(`/pages/${pageId}/line-ground-truth`)
+    return data
+  } catch (err) {
+    if (err?.response?.status === 404) return null
+    throw err
+  }
+}
+
+/** Fetch feedback statistics including CER and WER. */
+export async function getFeedbackStats() {
+  const { data } = await api.get('/feedback/stats')
+  return data
+}

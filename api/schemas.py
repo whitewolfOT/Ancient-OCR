@@ -65,6 +65,8 @@ class FeedbackStatsResponse(BaseModel):
     pending: int
     by_source_file: dict[str, int]
     error_rate: float
+    cer: float = 0.0
+    wer: float = 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -224,3 +226,19 @@ class CorrectionSubmitRequest(BaseModel):
 class CorrectionSubmitResponse(BaseModel):
     status: str
     entry_id: str
+
+
+class LineGroundTruthRequest(BaseModel):
+    lines: list[str]
+
+
+class LineGroundTruthItem(BaseModel):
+    line_index: int
+    text: str
+    submitted_at: str
+
+
+class LineGroundTruthResponse(BaseModel):
+    page_id: str
+    lines: list[LineGroundTruthItem]
+    saved_at: str

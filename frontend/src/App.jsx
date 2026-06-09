@@ -6,6 +6,7 @@ import PreprocessingControls from './components/PreprocessingControls'
 import GroundTruthPanel from './components/GroundTruthPanel'
 import WorkflowBar from './components/WorkflowBar'
 import SimilarPagesPanel from './components/SimilarPagesPanel'
+import ProfileSelector from './components/ProfileSelector'
 import { runPageOCR } from './api/client'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
   const [preprocessedB64, setPreprocessedB64] = useState(null)
   const [ocrTokens, setOcrTokens] = useState(null)   // null | token[]
   const [ocrRunning, setOcrRunning] = useState(false)
+  const [profileName, setProfileName] = useState('default')
   // Incrementing this remounts PageSidebar, re-fetching page list with updated status icons
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
 
@@ -100,8 +102,16 @@ export default function App() {
 
         {/* Right panel — hidden below xl breakpoint */}
         <div className="hidden w-64 flex-shrink-0 border-l border-gray-200 bg-white xl:flex xl:flex-col">
+          <div className="border-b border-gray-200 p-3">
+            <ProfileSelector
+              pageId={selectedPageId}
+              profileName={profileName}
+              onProfileChange={setProfileName}
+            />
+          </div>
           <GroundTruthPanel
             pageId={selectedPageId}
+            ocrTokens={ocrTokens}
             onSubmitted={() => setSidebarRefreshKey((k) => k + 1)}
           />
           <SimilarPagesPanel

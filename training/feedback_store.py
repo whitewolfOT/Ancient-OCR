@@ -8,6 +8,54 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
+
+# ---------------------------------------------------------------------------
+# CER / WER helpers
+# ---------------------------------------------------------------------------
+
+def _edit_distance(a: list, b: list) -> int:
+    """Standard Levenshtein distance on arbitrary element lists."""
+    n, m = len(a), len(b)
+    dp = list(range(m + 1))
+    for i in range(1, n + 1):
+        prev, dp[0] = dp[:], i
+        for j in range(1, m + 1):
+            if a[i - 1] == b[j - 1]:
+                dp[j] = prev[j - 1]
+            else:
+                dp[j] = 1 + min(prev[j - 1], prev[j], dp[j - 1])
+    return dp[m]
+
+
+def _cer(ref: str, hyp: str) -> float:
+    """Character Error Rate = char edit distance / max(1, len(ref))."""
+    if not ref:
+        return 0.0 if not hyp else 1.0
+    return min(1.0, _edit_distance(list(ref), list(hyp)) / len(ref))
+
+
+def _wer(ref: str, hyp: str) -> float:
+    """Word Error Rate = word edit distance / max(1, len(ref.split()))."""
+    ref_w = ref.split()
+    hyp_w = hyp.split()
+    if not ref_w:
+        return 0.0 if not hyp_w else 1.0
+    return min(1.0, _edit_distance(ref_w, hyp_w) / len(ref_w))
+
+
+def cer_wer(config=None) -> dict:
+    """Return mean CER, WER and sample size over all feedback entries."""
+    entries = load(config=config)
+    if not entries:
+        return {"cer": 0.0, "wer": 0.0, "sample_size": 0}
+    cer_vals = [_cer(e.ground_truth, e.predicted) for e in entries]
+    wer_vals = [_wer(e.ground_truth, e.predicted) for e in entries]
+    return {
+        "cer": round(sum(cer_vals) / len(cer_vals), 4),
+        "wer": round(sum(wer_vals) / len(wer_vals), 4),
+        "sample_size": len(entries),
+    }
+
 from confidence_engine.state import FeedbackEntry
 from utils.logging import get_logger
 
@@ -138,10 +186,14 @@ def mark_applied(ids: list[str], config=None) -> None:
 
 
 def stats(config=None) -> dict:
-    """Return summary statistics about the feedback store."""
+    """Return summary statistics about the feedback store, including CER/WER."""
     db = _db_path(config)
+    _empty = {
+        "total": 0, "applied": 0, "pending": 0,
+        "by_source_file": {}, "error_rate": 0.0, "cer": 0.0, "wer": 0.0,
+    }
     if not Path(db).exists():
-        return {"total": 0, "applied": 0, "pending": 0, "by_source_file": {}, "error_rate": 0.0}
+        return _empty
 
     try:
         with _connect(db) as conn:
@@ -154,14 +206,23 @@ def stats(config=None) -> dict:
             ).fetchall()
             by_source = {r["source_file"]: r["cnt"] for r in rows}
 
-            # error_rate: fraction of entries where predicted != ground_truth
             wrong = conn.execute(
                 "SELECT COUNT(*) FROM feedback WHERE predicted != ground_truth"
             ).fetchone()[0]
             error_rate = round(wrong / total, 4) if total else 0.0
+
+            pairs = conn.execute(
+                "SELECT predicted, ground_truth FROM feedback"
+            ).fetchall()
+
+        cer_vals = [_cer(r["ground_truth"], r["predicted"]) for r in pairs]
+        wer_vals = [_wer(r["ground_truth"], r["predicted"]) for r in pairs]
+        cer_avg = round(sum(cer_vals) / len(cer_vals), 4) if cer_vals else 0.0
+        wer_avg = round(sum(wer_vals) / len(wer_vals), 4) if wer_vals else 0.0
+
     except Exception as exc:
         log.warning(f"stats failed: {exc}")
-        return {"total": 0, "applied": 0, "pending": 0, "by_source_file": {}, "error_rate": 0.0}
+        return _empty
 
     return {
         "total": total,
@@ -169,4 +230,6 @@ def stats(config=None) -> dict:
         "pending": pending,
         "by_source_file": by_source,
         "error_rate": error_rate,
+        "cer": cer_avg,
+        "wer": wer_avg,
     }
