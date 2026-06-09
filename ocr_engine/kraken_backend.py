@@ -59,9 +59,13 @@ class KrakenBackend(OCRBackend):
             seg_path = model_dir / f"seg_{seg_handle.replace(':', '_').replace('/', '_')}.mlmodel"
             if not seg_path.exists():
                 log.info(f"kraken: downloading seg model {seg_handle}")
-                from kraken.repo import get_model
-                get_model(seg_handle, str(model_dir))
-                # kraken saves as <handle>.mlmodel — find it
+                try:
+                    from htrmopo import get_model as htr_get_model
+                    htr_get_model(seg_handle, path=str(model_dir))
+                except ImportError:
+                    from kraken.repo import get_model  # kraken <5 fallback
+                    get_model(seg_handle, str(model_dir))
+                # find the downloaded file
                 candidates = list(model_dir.glob("*.mlmodel"))
                 if candidates:
                     seg_path = candidates[-1]
@@ -72,8 +76,12 @@ class KrakenBackend(OCRBackend):
             rec_path = model_dir / f"rec_{rec_handle}.mlmodel"
             if not rec_path.exists():
                 log.info(f"kraken: downloading rec model {rec_handle}")
-                from kraken.repo import get_model
-                get_model(rec_handle, str(model_dir))
+                try:
+                    from htrmopo import get_model as htr_get_model
+                    htr_get_model(rec_handle, path=str(model_dir))
+                except ImportError:
+                    from kraken.repo import get_model  # kraken <5 fallback
+                    get_model(rec_handle, str(model_dir))
                 candidates = list(model_dir.glob("*.mlmodel"))
                 if candidates:
                     rec_path = sorted(candidates)[-1]

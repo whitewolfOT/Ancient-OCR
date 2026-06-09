@@ -2,7 +2,7 @@ profiles:
   default:
     description: "Fallback — printed Arabic, clean scan"
     binarizer: "otsu"
-    seg_model: "zenodo:14295555"
+    seg_model: "10.5281/zenodo.14295555"
     rec_model: "agapet"
     rec_model_secondary: null
     n_best: 3
@@ -22,7 +22,7 @@ profiles:
   andalusian_naskh:
     description: "Ibn al-Awwam manuscript — Andalusian Naskh, 12th–13th c., yellowed"
     binarizer: "nlbin"
-    seg_model: "zenodo:14295555"
+    seg_model: "10.5281/zenodo.14295555"
     rec_model: "agapet"
     rec_model_secondary: "muharaf"
     n_best: 5
@@ -42,7 +42,7 @@ profiles:
   maghrebi_degraded:
     description: "Maghrebi script — bleed-through, curved lines"
     binarizer: "sauvola"
-    seg_model: "zenodo:14295555"
+    seg_model: "10.5281/zenodo.14295555"
     rec_model: "muharaf"
     rec_model_secondary: "agapet"
     n_best: 5
@@ -62,7 +62,7 @@ profiles:
   low_contrast:
     description: "Faded ink — low contrast scan"
     binarizer: "sauvola"
-    seg_model: "zenodo:14295555"
+    seg_model: "10.5281/zenodo.14295555"
     rec_model: "agapet"
     rec_model_secondary: null
     n_best: 3
