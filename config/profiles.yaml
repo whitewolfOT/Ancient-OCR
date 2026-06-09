@@ -29,15 +29,15 @@ profiles:
     rtl: true
     device: "cpu"
     preprocessing:
-      brightness: 8
-      contrast: 1.15
-      gamma: 1.1
+      brightness: 0
+      contrast: 1.0
+      gamma: 1.0
       saturation: 0.0
       stroke_normalization:
         enabled: false
         target_width: 2
-      denoise_strength: 10
-      sharpen: 0.3
+      denoise_strength: 5
+      sharpen: 0.0
 
   maghrebi_degraded:
     description: "Maghrebi script — bleed-through, curved lines"
