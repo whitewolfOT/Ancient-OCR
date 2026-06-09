@@ -47,6 +47,7 @@ def test_is_available_false_when_not_installed():
 # ---------------------------------------------------------------------------
 
 def test_binarizer_sauvola_does_not_call_nlbin():
+    from PIL import Image as PILImage
     from ocr_engine.kraken_backend import KrakenBackend
     profile = OCRProfile(name="test", binarizer="sauvola")
     backend = KrakenBackend(profile=profile)
@@ -57,18 +58,20 @@ def test_binarizer_sauvola_does_not_call_nlbin():
         with patch.dict("sys.modules", {"kraken.binarization": MagicMock()}):
             result = backend._binarize(img)
     assert result is not None
-    assert result.ndim == 2  # output is grayscale
+    assert isinstance(result, PILImage.Image)  # _binarize returns PIL Image
 
 
 def test_binarizer_otsu_default():
+    import numpy as np
+    from PIL import Image as PILImage
     from ocr_engine.kraken_backend import KrakenBackend
     profile = OCRProfile(name="test", binarizer="otsu")
     backend = KrakenBackend(profile=profile)
     gray = np.random.randint(0, 256, (80, 80), dtype=np.uint8)
     result = backend._binarize(gray)
-    assert result.ndim == 2
-    unique = np.unique(result)
-    assert set(unique).issubset({0, 255})
+    assert isinstance(result, PILImage.Image)
+    arr = np.array(result)
+    assert set(np.unique(arr)).issubset({0, 255})
 
 
 # ---------------------------------------------------------------------------

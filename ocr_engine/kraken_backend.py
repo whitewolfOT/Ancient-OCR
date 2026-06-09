@@ -54,43 +54,60 @@ class KrakenBackend(OCRBackend):
             )
             model_dir.mkdir(parents=True, exist_ok=True)
 
+            all_mlmodels = sorted(model_dir.glob("*.mlmodel"))
+            seg_candidates = [p for p in all_mlmodels if "seg" in p.name.lower()]
+            rec_candidates = [p for p in all_mlmodels if "rec" in p.name.lower()]
+
             # Segmentation model
             seg_handle = self.profile.seg_model
             seg_path = model_dir / f"seg_{seg_handle.replace(':', '_').replace('/', '_')}.mlmodel"
             if not seg_path.exists():
-                log.info(f"kraken: downloading seg model {seg_handle}")
-                try:
-                    from htrmopo import get_model as htr_get_model
-                    htr_get_model(seg_handle, path=str(model_dir))
-                except ImportError:
-                    from kraken.repo import get_model  # kraken <5 fallback
-                    get_model(seg_handle, str(model_dir))
-                # find the downloaded file
-                candidates = list(model_dir.glob("*.mlmodel"))
-                if candidates:
-                    seg_path = candidates[-1]
-            self._seg_model = kraken_models.load_any(str(seg_path))
+                # Try any staged seg model before downloading
+                if seg_candidates:
+                    seg_path = seg_candidates[0]
+                    log.info(f"kraken: using staged seg model {seg_path.name}")
+                else:
+                    log.info(f"kraken: downloading seg model {seg_handle}")
+                    try:
+                        from htrmopo import get_model as htr_get_model
+                        htr_get_model(seg_handle, path=str(model_dir))
+                    except ImportError:
+                        from kraken.repo import get_model  # kraken <5 fallback
+                        get_model(seg_handle, str(model_dir))
+                    candidates = sorted(model_dir.glob("*.mlmodel"))
+                    seg_path = next((p for p in candidates if "seg" in p.name.lower()), candidates[-1] if candidates else seg_path)
+            # Seg models use TorchVGSLModel.load_model(), not load_any()
+            from kraken.lib import vgsl as kraken_vgsl
+            self._seg_model = kraken_vgsl.TorchVGSLModel.load_model(str(seg_path))
 
             # Primary recognition model
             rec_handle = self.profile.rec_model
             rec_path = model_dir / f"rec_{rec_handle}.mlmodel"
             if not rec_path.exists():
-                log.info(f"kraken: downloading rec model {rec_handle}")
-                try:
-                    from htrmopo import get_model as htr_get_model
-                    htr_get_model(rec_handle, path=str(model_dir))
-                except ImportError:
-                    from kraken.repo import get_model  # kraken <5 fallback
-                    get_model(rec_handle, str(model_dir))
-                candidates = list(model_dir.glob("*.mlmodel"))
-                if candidates:
-                    rec_path = sorted(candidates)[-1]
+                # Try any staged rec model before downloading
+                if rec_candidates:
+                    rec_path = rec_candidates[0]
+                    log.info(f"kraken: using staged rec model {rec_path.name}")
+                else:
+                    log.info(f"kraken: downloading rec model {rec_handle}")
+                    try:
+                        from htrmopo import get_model as htr_get_model
+                        htr_get_model(rec_handle, path=str(model_dir))
+                    except ImportError:
+                        from kraken.repo import get_model  # kraken <5 fallback
+                        get_model(rec_handle, str(model_dir))
+                    candidates = sorted(model_dir.glob("*.mlmodel"))
+                    rec_path = next((p for p in candidates if "rec" in p.name.lower()), candidates[-1] if candidates else rec_path)
             self._rec_model = kraken_models.load_any(str(rec_path))
 
             # Secondary recognition model (optional, for N-best)
             if self.profile.rec_model_secondary and self.profile.n_best > 1:
                 sec_handle = self.profile.rec_model_secondary
                 sec_path = model_dir / f"rec_{sec_handle}.mlmodel"
+                if not sec_path.exists():
+                    alt = [p for p in rec_candidates if p != rec_path]
+                    if alt:
+                        sec_path = alt[0]
                 if sec_path.exists():
                     self._rec_secondary = kraken_models.load_any(str(sec_path))
 
@@ -99,22 +116,23 @@ class KrakenBackend(OCRBackend):
             log.warning(f"kraken: model init failed — {type(exc).__name__}: {exc}")
             return False
 
-    def _binarize(self, img: np.ndarray) -> np.ndarray:
+    def _binarize(self, img: np.ndarray):
+        """Return binarized PIL Image."""
+        from PIL import Image as PILImage
         binarizer = self.profile.binarizer
         if binarizer == "nlbin":
             # nlbin is Kraken-internal; only call inside this backend
             from kraken.binarization import nlbin
-            return nlbin(img)
+            pil = PILImage.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB) if len(img.shape) == 3 else img)
+            return nlbin(pil)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if len(img.shape) == 3 else img
         if binarizer == "sauvola":
-            return cv2.adaptiveThreshold(
-                gray, 255,
-                cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY,
-                11, 2,
+            binary = cv2.adaptiveThreshold(
+                gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2,
             )
-        # default: otsu
-        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        return binary
+        else:
+            _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        return PILImage.fromarray(binary)
 
     @staticmethod
     def _baseline_bbox(points: list[tuple[int, int]]) -> tuple[int, int, int, int]:
@@ -136,14 +154,17 @@ class KrakenBackend(OCRBackend):
             return self._empty_result(page_index)
 
         try:
-            from kraken import pageseg, rpred
+            from kraken import blla, rpred
 
-            bin_img = self._binarize(image)
+            # _binarize returns PIL Image; blla.segment and rpred both need PIL
+            pil_img = self._binarize(image)
 
-            seg = pageseg.segment(
-                bin_img,
+            text_dir = "horizontal-rl" if self.profile.rtl else "horizontal-lr"
+            seg = blla.segment(
+                pil_img,
                 model=self._seg_model,
-                text_direction="rtl" if self.profile.rtl else "horizontal-lr",
+                text_direction=text_dir,
+                device=self.profile.device or "cpu",
             )
 
             all_words: list[WordToken] = []
@@ -151,10 +172,10 @@ class KrakenBackend(OCRBackend):
             line_confidences: list[float] = []
 
             for line in seg.lines:
-                # Primary recognition
+                # Primary recognition — rpred takes PIL image + Segmentation object
                 records = list(rpred.rpred(
-                    self._rec_model, bin_img, seg,
-                    bidi_reorder=self.profile.rtl,
+                    self._rec_model, pil_img, seg,
+                    bidi_reordering=self.profile.rtl,
                 ))
 
                 # Secondary model records (N-best signal)
@@ -162,8 +183,8 @@ class KrakenBackend(OCRBackend):
                 if self._rec_secondary and self.profile.n_best > 1:
                     try:
                         secondary_records = list(rpred.rpred(
-                            self._rec_secondary, bin_img, seg,
-                            bidi_reorder=self.profile.rtl,
+                            self._rec_secondary, pil_img, seg,
+                            bidi_reordering=self.profile.rtl,
                         ))
                     except Exception as exc:
                         log.debug(f"kraken secondary rec failed: {exc}")
