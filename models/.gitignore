@@ -1,2 +1,4 @@
 *
 !.gitignore
+models/.gitignore.mlmodel
+commit -m Add Muharaf models.mlmodel
