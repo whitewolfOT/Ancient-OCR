@@ -193,7 +193,7 @@ profiles:
   active_profile: "default"
 
 kraken:
-  enabled: false
+  enabled: true
   seg_model: "zenodo:14295555"
   rec_model: "agapet"
   rec_model_secondary: "muharaf"
