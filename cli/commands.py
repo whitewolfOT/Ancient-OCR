@@ -11,11 +11,12 @@ from utils.logging import get_logger
 log = get_logger(__name__)
 
 
-def handle_process(file_path: str, mode: str, output: str | None) -> int:
+def handle_process(file_path: str, mode: str, output: str | None,
+                   profile_name: str = "default") -> int:
     """Process a single file. Returns exit code."""
     try:
         from main import process_file
-        result = process_file(file_path, mode)
+        result = process_file(file_path, mode, profile_name=profile_name)
         _write_or_print(result, output, mode)
         return 0
     except Exception as exc:

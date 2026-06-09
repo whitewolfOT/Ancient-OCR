@@ -22,13 +22,15 @@ def process(
     file_path: Path = typer.Argument(..., help="Input PDF or image file"),
     mode: str = typer.Option("clean", "--mode", "-m", help="Output mode: clean|annotated|debug"),
     output: Optional[Path] = typer.Option(None, "--output", "-o", help="Write output to file"),
+    profile: str = typer.Option("default", "--profile", "-p", help="OCR profile name"),
 ):
     """Process a single file through the OCR pipeline."""
     if mode not in _MODES:
         typer.echo(f"Error: invalid mode '{mode}'. Must be one of: {_MODES}", err=True)
         raise typer.Exit(1)
     from cli.commands import handle_process
-    code = handle_process(str(file_path), mode, str(output) if output else None)
+    code = handle_process(str(file_path), mode, str(output) if output else None,
+                          profile_name=profile)
     raise typer.Exit(code)
 
 
