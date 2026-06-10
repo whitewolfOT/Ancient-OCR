@@ -142,6 +142,7 @@ class PaddleBackend(OCRBackend):
             return False
 
     def extract(self, image: np.ndarray, page_index: int = 0) -> OCRResult:
+        log.info(f"paddle: extract start page={page_index} image={image.shape}")
         if not _paddle_available:
             raise RuntimeError("PaddleOCR is not installed")
 
@@ -195,7 +196,7 @@ class PaddleBackend(OCRBackend):
             texts.append(str(text))
 
         page_conf = float(np.mean([w.confidence for w in words])) if words else 0.0
-        log.debug(f"paddle extract page={page_index} tokens={len(words)} conf={page_conf:.3f}")
+        log.info(f"paddle: extract done page={page_index} tokens={len(words)} conf={page_conf:.3f}")
 
         # Multi-hypothesis: generate confusion-pair alternatives for each token.
         # PaddleOCR 3.x predict() exposes only top-1 — alternatives are edit-distance-1

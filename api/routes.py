@@ -521,7 +521,15 @@ def register_routes(app):
                 "page_count": 1,
             }
 
-            annotated = run_pipeline([page_image], mode="annotated", cfg=ocr_cfg)
+            import concurrent.futures as _cf
+            log.info(f"run_page_ocr {page_id}: submitting pipeline")
+            with _cf.ThreadPoolExecutor(max_workers=1) as _pool:
+                _fut = _pool.submit(run_pipeline, [page_image], mode="annotated", cfg=ocr_cfg)
+                try:
+                    annotated = _fut.result(timeout=60)
+                except _cf.TimeoutError:
+                    raise TimeoutError("OCR pipeline exceeded 60-second timeout")
+            log.info(f"run_page_ocr {page_id}: pipeline complete")
 
         except Exception as exc:
             log.warning(f"run_page_ocr {page_id} failed: {exc}")

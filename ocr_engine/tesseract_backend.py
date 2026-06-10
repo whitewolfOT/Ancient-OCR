@@ -49,6 +49,7 @@ class TesseractBackend(OCRBackend):
         return _tesseract_available and _tesseract_ara_available
 
     def extract(self, image: np.ndarray, page_index: int = 0) -> OCRResult:
+        log.info(f"tesseract: extract start page={page_index} image={image.shape}")
         if not _tesseract_available:
             raise RuntimeError(
                 "tesseract-ocr binary not found. "
@@ -96,7 +97,7 @@ class TesseractBackend(OCRBackend):
             texts.append(text)
 
         page_conf = float(np.mean([w.confidence for w in words])) if words else 0.0
-        log.debug(f"tesseract extract page={page_index} tokens={len(words)} conf={page_conf:.3f}")
+        log.info(f"tesseract: extract done page={page_index} tokens={len(words)} conf={page_conf:.3f}")
 
         return OCRResult(
             text=" ".join(texts),

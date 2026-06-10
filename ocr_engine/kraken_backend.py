@@ -146,6 +146,7 @@ class KrakenBackend(OCRBackend):
         return self.process_image(image, page_index)
 
     def process_image(self, image: np.ndarray, page_index: int = 0) -> OCRResult:
+        log.info(f"kraken: process_image start page={page_index} image={image.shape}")
         if not self.is_available():
             log.warning("kraken not installed; returning empty result")
             return self._empty_result(page_index)
@@ -215,7 +216,7 @@ class KrakenBackend(OCRBackend):
                     )
 
             page_conf = float(sum(line_confidences) / len(line_confidences)) if line_confidences else 0.0
-            log.debug(f"kraken page={page_index} lines={len(line_texts)} words={len(all_words)}")
+            log.info(f"kraken: process_image done page={page_index} lines={len(line_texts)} words={len(all_words)} conf={page_conf:.3f}")
 
             return OCRResult(
                 text="\n".join(line_texts),
