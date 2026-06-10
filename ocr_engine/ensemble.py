@@ -89,6 +89,7 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     tess_enabled = getattr(tess_cfg, "enabled", True)
     trocr_enabled = getattr(trocr_cfg, "enabled", False)
     kraken_enabled = getattr(kraken_cfg, "enabled", False)
+    log.info(f"ensemble init: kraken.enabled={kraken_enabled} (config.kraken={kraken_cfg!r})")
 
     if _disable_paddle:
         log.info("DISABLE_PADDLE=true: PaddleBackend skipped")
@@ -120,14 +121,22 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
 
     if kraken_enabled:
         from ocr_engine.kraken_backend import KrakenBackend
-        if KrakenBackend.is_available():
+        try:
+            _kraken_avail = KrakenBackend.is_available()
+        except Exception as _kraken_avail_exc:
+            _kraken_avail = False
+            log.warning(f"kraken: is_available() raised {type(_kraken_avail_exc).__name__}: {_kraken_avail_exc}")
+        log.info(f"kraken: is_available={_kraken_avail}")
+        if _kraken_avail:
             try:
                 result = _get_kraken(config, profile).process_image(image, page_index)
                 engine_results["kraken"] = result
                 token_lists.append(result.words)
-                weights.append(0.7)  # Kraken weight — configurable in future
+                weights.append(0.7)
             except Exception as exc:
                 log.warning(f"kraken extract failed: {exc}")
+    else:
+        log.info("kraken: skipped (kraken.enabled=false in config)")
 
     # Handle zero or one backend
     if not engine_results:
