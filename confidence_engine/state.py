@@ -2,57 +2,57 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from pydantic import BaseModel, Field
 
 
 class LexiconEntry(BaseModel):
     lemma: str
-    root: str | None = None
-    pattern: str | None = None   # wazn
+    root: Optional[str] = None
+    pattern: Optional[str] = None   # wazn
     gloss: str
     source: str
     era: str                     # "classical" | "modern"
-    domain: str | None = None
-    examples: list[str] = []
+    domain: Optional[str] = None
+    examples: List[str] = []
     priority: int
 
 
 class Candidate(BaseModel):
     text: str
     reason: str                  # "spelling_variant"|"normalization"|"root_alt"|"morph_alt"|"identity"
-    lexicon_entries: list[LexiconEntry] = []
-    features: dict[str, float | str] = {}  # numeric scores + string labels (e.g. morph_evidence)
-    score: float | None = None
+    lexicon_entries: List[LexiconEntry] = []
+    features: Dict[str, Union[float, str]] = {}  # numeric scores + string labels (e.g. morph_evidence)
+    score: Optional[float] = None
 
 
 class RankedResult(BaseModel):
-    best: Candidate | None
-    ranked: list[Candidate]
+    best: Optional[Candidate]
+    ranked: List[Candidate]
     selected_text: str
 
 
 class TokenState(BaseModel):
     original: str
     normalized: str
-    normalization_log: list[dict[str, str]]  # {"step","before","after","rule"} per change
-    candidates: list[Candidate]
+    normalization_log: List[Dict[str, str]]  # {"step","before","after","rule"} per change
+    candidates: List[Candidate]
     selected: str
     confidence: float
-    sources: list[str]
+    sources: List[str]
     decision: str               # "accept"|"accept_with_note"|"uncertain"|"review_required"
     reason_code: str
-    bbox: tuple[int, int, int, int] | None = None  # page-space; needed for review crops
+    bbox: Optional[Tuple[int, int, int, int]] = None  # page-space; needed for review crops
     page_index: int = 0
-    line_id: str | None = None                     # Kraken line UUID (None for other backends)
-    baseline: list[tuple[int, int]] | None = None  # Kraken baseline points, page-space
+    line_id: Optional[str] = None                     # Kraken line UUID (None for other backends)
+    baseline: Optional[List[Tuple[int, int]]] = None  # Kraken baseline points, page-space
 
 
 class FeedbackEntry(BaseModel):
     id: str                           # UUID
     image_path: str                   # path to the cropped image
-    bbox: tuple[int, int, int, int]   # page space
+    bbox: Tuple[int, int, int, int]   # page space
     page_index: int
     predicted: str
     ground_truth: str
@@ -65,16 +65,16 @@ def build_token_state(
     *,
     original: str,
     normalized: str,
-    norm_log: list[dict[str, str]],
-    candidates: list[Candidate],
+    norm_log: List[Dict[str, str]],
+    candidates: List[Candidate],
     ranked_result: RankedResult,
     conf: float,
     decision: str,
     reason_code: str,
-    bbox: tuple[int, int, int, int] | None = None,
+    bbox: Optional[Tuple[int, int, int, int]] = None,
     page_index: int = 0,
-    line_id: str | None = None,
-    baseline: list[tuple[int, int]] | None = None,
+    line_id: Optional[str] = None,
+    baseline: Optional[List[Tuple[int, int]]] = None,
 ) -> TokenState:
     sources = list({e.source for c in candidates for e in c.lexicon_entries})
     return TokenState(
