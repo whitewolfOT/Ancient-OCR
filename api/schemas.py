@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -14,18 +14,18 @@ class ProcessResponse(BaseModel):
     text: str
     word_count: int
     page_count: int
-    tokens: list[dict] | None = None
-    raw_ocr: list[dict] | None = None
+    tokens: Optional[List[dict]] = None
+    raw_ocr: Optional[List[dict]] = None
 
 
 class HealthResponse(BaseModel):
     status: str
-    engines: dict[str, bool]
+    engines: Dict[str, bool]
 
 
 class FeedbackSubmitRequest(BaseModel):
     image_path: str
-    bbox: list[int]
+    bbox: List[int]
     page_index: int
     predicted: str
     ground_truth: str
@@ -53,17 +53,17 @@ class FeedbackSubmitResponse(BaseModel):
 
 class CalibrateResponse(BaseModel):
     sample_size: int
-    current_weights: dict[str, float]
-    suggested_weights: dict[str, float]
-    delta: dict[str, float]
-    warning: str | None = None
+    current_weights: Dict[str, float]
+    suggested_weights: Dict[str, float]
+    delta: Dict[str, float]
+    warning: Optional[str] = None
 
 
 class FeedbackStatsResponse(BaseModel):
     total: int
     applied: int
     pending: int
-    by_source_file: dict[str, int]
+    by_source_file: Dict[str, int]
     error_rate: float
     cer: float = 0.0
     wer: float = 0.0
@@ -83,7 +83,7 @@ class ClusterInfo(BaseModel):
 class UploadResponse(BaseModel):
     doc_id: str
     page_count: int
-    clusters: list[ClusterInfo]
+    clusters: List[ClusterInfo]
 
 
 class PageInfo(BaseModel):
@@ -162,17 +162,17 @@ class ApplyClusterSettingsResponse(BaseModel):
 
 class OCRTokenResult(BaseModel):
     text: str
-    bbox: list[int]      # [x1, y1, x2, y2]
+    bbox: List[int]
     confidence: float
     decision: str
-    sources: list[str]
+    sources: List[str]
 
 
 class OCRResultResponse(BaseModel):
     page_id: str
     word_count: int
-    decisions: dict[str, int]
-    tokens: list[OCRTokenResult]
+    decisions: Dict[str, int]
+    tokens: List[OCRTokenResult]
     processed_at: str
 
 
@@ -196,12 +196,12 @@ class ProfilePreprocessingSchema(BaseModel):
 
 
 class ProfileUpdateRequest(BaseModel):
-    name: str | None = None
+    name: Optional[str] = None
     description: str = ""
     binarizer: str = "otsu"
     seg_model: str = "zenodo:14295555"
     rec_model: str = "agapet"
-    rec_model_secondary: str | None = None
+    rec_model_secondary: Optional[str] = None
     n_best: int = 3
     rtl: bool = True
     device: str = "cpu"
@@ -209,7 +209,7 @@ class ProfileUpdateRequest(BaseModel):
 
 
 class ProfileListResponse(BaseModel):
-    profiles: list[str]
+    profiles: List[str]
 
 
 class ProfileSuggestResponse(BaseModel):
@@ -229,7 +229,7 @@ class CorrectionSubmitResponse(BaseModel):
 
 
 class LineGroundTruthRequest(BaseModel):
-    lines: list[str]
+    lines: List[str]
 
 
 class LineGroundTruthItem(BaseModel):
@@ -240,5 +240,5 @@ class LineGroundTruthItem(BaseModel):
 
 class LineGroundTruthResponse(BaseModel):
     page_id: str
-    lines: list[LineGroundTruthItem]
+    lines: List[LineGroundTruthItem]
     saved_at: str
