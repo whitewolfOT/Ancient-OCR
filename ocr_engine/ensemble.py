@@ -69,9 +69,11 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
         5. TrOCR verifier pass for clusters below conf_threshold.
         6. Return merged OCRResult with all raw per-engine outputs.
     """
-    from ocr_engine.paddle_backend import PaddleBackend
+    import os as _os
     from ocr_engine.tesseract_backend import TesseractBackend
     from alignment.token_matcher import match_tokens
+
+    _disable_paddle = _os.environ.get("DISABLE_PADDLE", "").lower() in ("1", "true", "yes")
 
     paddle_cfg = getattr(getattr(config, "ocr", None), "paddle", None)
     tess_cfg = getattr(getattr(config, "ocr", None), "tesseract", None)
@@ -83,24 +85,29 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     trocr_weight = getattr(trocr_cfg, "weight", 0.0)
     trocr_threshold = getattr(trocr_cfg, "conf_threshold", 0.5)
 
-    paddle_enabled = getattr(paddle_cfg, "enabled", True)
+    paddle_enabled = (not _disable_paddle) and getattr(paddle_cfg, "enabled", True)
     tess_enabled = getattr(tess_cfg, "enabled", True)
     trocr_enabled = getattr(trocr_cfg, "enabled", False)
     kraken_enabled = getattr(kraken_cfg, "enabled", False)
+
+    if _disable_paddle:
+        log.info("DISABLE_PADDLE=true: PaddleBackend skipped")
 
     engine_results: dict[str, OCRResult] = {}
     token_lists: list[list[WordToken]] = []
     weights: list[float] = []
 
     # --- Run backends ---
-    if paddle_enabled and PaddleBackend.is_available():
-        try:
-            result = _get_paddle(config).extract(image, page_index)
-            engine_results["paddle"] = result
-            token_lists.append(result.words)
-            weights.append(paddle_weight)
-        except Exception as exc:
-            log.warning(f"paddle extract failed: {exc}")
+    if paddle_enabled:
+        from ocr_engine.paddle_backend import PaddleBackend
+        if PaddleBackend.is_available():
+            try:
+                result = _get_paddle(config).extract(image, page_index)
+                engine_results["paddle"] = result
+                token_lists.append(result.words)
+                weights.append(paddle_weight)
+            except Exception as exc:
+                log.warning(f"paddle extract failed: {exc}")
 
     if tess_enabled and TesseractBackend.is_available():
         try:
