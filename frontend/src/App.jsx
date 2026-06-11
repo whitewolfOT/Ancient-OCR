@@ -7,6 +7,7 @@ import GroundTruthPanel from './components/GroundTruthPanel'
 import WorkflowBar from './components/WorkflowBar'
 import SimilarPagesPanel from './components/SimilarPagesPanel'
 import ProfileSelector from './components/ProfileSelector'
+import ReviewTab from './components/ReviewTab'
 import { runPageOCR } from './api/client'
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
   const [ocrTokens, setOcrTokens] = useState(null)   // null | token[]
   const [ocrRunning, setOcrRunning] = useState(false)
   const [profileName, setProfileName] = useState('default')
+  const [activeView, setActiveView] = useState('workspace') // 'workspace' | 'review'
   // Incrementing this remounts PageSidebar, re-fetching page list with updated status icons
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
 
@@ -53,6 +55,20 @@ export default function App() {
     }
   }
 
+  // ── Review view (always available, no doc required) ─────────────────────
+  if (activeView === 'review') {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden bg-gray-50">
+        <div className="flex-none border-b border-gray-200 bg-white px-4 py-2">
+          <h1 className="text-sm font-semibold text-gray-700">OCR Results Review</h1>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <ReviewTab onBack={() => setActiveView('workspace')} />
+        </div>
+      </div>
+    )
+  }
+
   // ── Upload screen ─────────────────────────────────────────────────────────
   if (!doc) {
     return (
@@ -65,6 +81,14 @@ export default function App() {
             Upload a document to begin preprocessing calibration
           </p>
           <UploadZone onSuccess={handleUploadSuccess} />
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setActiveView('review')}
+              className="text-sm text-indigo-600 hover:underline"
+            >
+              View OCR results →
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -73,7 +97,17 @@ export default function App() {
   // ── Document workspace ───────────────────────────────────────────────────
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-gray-50">
-      <WorkflowBar hasOcrResults={ocrTokens !== null} />
+      <div className="flex flex-none items-center border-b border-gray-200 bg-white">
+        <div className="flex-1">
+          <WorkflowBar hasOcrResults={ocrTokens !== null} />
+        </div>
+        <button
+          onClick={() => setActiveView('review')}
+          className="mr-3 rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+        >
+          Review Results
+        </button>
+      </div>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Left: scrollable page list — key remounts on GT save or OCR done */}

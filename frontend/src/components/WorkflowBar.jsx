@@ -12,7 +12,7 @@ export default function WorkflowBar({ currentStep: currentStepProp, hasOcrResult
   const currentIdx = STEPS.findIndex((s) => s.id === currentStep)
 
   return (
-    <div className="flex-none border-b border-gray-200 bg-white px-4 py-2">
+    <div className="flex-none bg-white px-4 py-2">
       <ol className="flex items-center">
         {STEPS.map((step, idx) => {
           const isDone    = idx < currentIdx
