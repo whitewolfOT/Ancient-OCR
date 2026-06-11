@@ -189,14 +189,25 @@ class KrakenBackend(OCRBackend):
                 except Exception as exc:
                     log.debug(f"kraken secondary rec failed: {exc}")
 
-            for line, rec in zip(seg.lines, records):
+            sec_by_line = {}
+            for i, sec_rec in enumerate(secondary_records):
+                sec_by_line[i] = sec_rec
+
+            for line_idx, (line, rec) in enumerate(zip(seg.lines, records)):
                 line_id = str(id(line))
+                sec_rec = sec_by_line.get(line_idx)
+                sec_words = {w: c for w, c, _ in self._split_prediction(sec_rec)} if sec_rec else {}
 
                 for word_text, span_confs, span_baseline in self._split_prediction(rec):
                     if not word_text.strip():
                         continue
                     conf = float(sum(span_confs) / len(span_confs)) if span_confs else 0.0
                     bbox = self._baseline_bbox(span_baseline) if span_baseline else (0, 0, 0, 0)
+                    candidates = [{"text": word_text, "confidence": round(conf, 4)}]
+                    if sec_rec and word_text in sec_words:
+                        sec_conf = sec_words[word_text]
+                        if sec_conf != conf:
+                            candidates.append({"text": word_text, "confidence": round(sec_conf, 4)})
                     all_words.append(WordToken(
                         text=word_text,
                         confidence=conf,
@@ -205,6 +216,8 @@ class KrakenBackend(OCRBackend):
                         source="kraken",
                         line_id=line_id,
                         baseline=span_baseline or None,
+                        char_confidences=[round(float(c), 4) for c in span_confs] if span_confs else None,
+                        candidates=candidates,
                     ))
 
                 line_texts.append(rec.prediction)

@@ -15,9 +15,11 @@ class WordToken(BaseModel):
     bbox: Tuple[int, int, int, int]  # x, y, w, h (top-left origin, page space)
     page_index: int
     source: str                # "paddle" | "tesseract" | "trocr" | "kraken" | "ensemble"
-    region_id: Optional[str] = None  # set by region_cropper; None = full-page
-    line_id: Optional[str] = None    # Kraken line UUID from segment JSON
-    baseline: Optional[List[Tuple[int, int]]] = None  # raw baseline points, page-space (Kraken only)
+    region_id: Optional[str] = None
+    line_id: Optional[str] = None
+    baseline: Optional[List[Tuple[int, int]]] = None
+    char_confidences: Optional[List[float]] = None   # per-character, same length as text
+    candidates: Optional[List[Dict[str, object]]] = None  # [{text, confidence}, ...]
 
 
 class OCRResult(BaseModel):
