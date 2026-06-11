@@ -70,10 +70,10 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
         6. Return merged OCRResult with all raw per-engine outputs.
     """
     import os as _os
-    from ocr_engine.tesseract_backend import TesseractBackend
     from alignment.token_matcher import match_tokens
 
     _disable_paddle = _os.environ.get("DISABLE_PADDLE", "").lower() in ("1", "true", "yes")
+    _disable_tesseract = _os.environ.get("DISABLE_TESSERACT", "").lower() in ("1", "true", "yes")
 
     paddle_cfg = getattr(getattr(config, "ocr", None), "paddle", None)
     tess_cfg = getattr(getattr(config, "ocr", None), "tesseract", None)
@@ -86,13 +86,15 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
     trocr_threshold = getattr(trocr_cfg, "conf_threshold", 0.5)
 
     paddle_enabled = (not _disable_paddle) and getattr(paddle_cfg, "enabled", True)
-    tess_enabled = getattr(tess_cfg, "enabled", True)
+    tess_enabled = (not _disable_tesseract) and getattr(tess_cfg, "enabled", True)
     trocr_enabled = getattr(trocr_cfg, "enabled", False)
     kraken_enabled = getattr(kraken_cfg, "enabled", False)
     log.info(f"ensemble init: kraken.enabled={kraken_enabled} (config.kraken={kraken_cfg!r})")
 
     if _disable_paddle:
         log.info("DISABLE_PADDLE=true: PaddleBackend skipped")
+    if _disable_tesseract:
+        log.info("DISABLE_TESSERACT=true: TesseractBackend skipped")
 
     engine_results: dict[str, OCRResult] = {}
     token_lists: list[list[WordToken]] = []
@@ -110,6 +112,8 @@ def run_ensemble(image: np.ndarray, page_index: int, config, crop_bbox: tuple = 
             except Exception as exc:
                 log.warning(f"paddle extract failed: {exc}")
 
+    if tess_enabled:
+        from ocr_engine.tesseract_backend import TesseractBackend
     if tess_enabled and TesseractBackend.is_available():
         try:
             result = _get_tess(config).extract(image, page_index)
