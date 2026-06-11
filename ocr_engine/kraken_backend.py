@@ -172,48 +172,46 @@ class KrakenBackend(OCRBackend):
             line_texts: list[str] = []
             line_confidences: list[float] = []
 
-            for line in seg.lines:
-                # Primary recognition — rpred takes PIL image + Segmentation object
-                records = list(rpred.rpred(
-                    self._rec_model, pil_img, seg,
-                    bidi_reordering=self.profile.rtl,
-                ))
+            # Run recognition once over the full segmentation (one record per line)
+            records = list(rpred.rpred(
+                self._rec_model, pil_img, seg,
+                bidi_reordering=self.profile.rtl,
+            ))
 
-                # Secondary model records (N-best signal)
-                secondary_records = []
-                if self._rec_secondary and self.profile.n_best > 1:
-                    try:
-                        secondary_records = list(rpred.rpred(
-                            self._rec_secondary, pil_img, seg,
-                            bidi_reordering=self.profile.rtl,
-                        ))
-                    except Exception as exc:
-                        log.debug(f"kraken secondary rec failed: {exc}")
+            # Secondary model records (N-best signal)
+            secondary_records = []
+            if self._rec_secondary and self.profile.n_best > 1:
+                try:
+                    secondary_records = list(rpred.rpred(
+                        self._rec_secondary, pil_img, seg,
+                        bidi_reordering=self.profile.rtl,
+                    ))
+                except Exception as exc:
+                    log.debug(f"kraken secondary rec failed: {exc}")
 
-                line_id = str(id(line))  # stable within this call
+            for line, rec in zip(seg.lines, records):
+                line_id = str(id(line))
 
-                for rec in records[:1]:  # primary for token building
-                    for word_text, span_confs, span_baseline in self._split_prediction(rec):
-                        if not word_text.strip():
-                            continue
-                        conf = float(sum(span_confs) / len(span_confs)) if span_confs else 0.0
-                        bbox = self._baseline_bbox(span_baseline) if span_baseline else (0, 0, 0, 0)
-                        all_words.append(WordToken(
-                            text=word_text,
-                            confidence=conf,
-                            bbox=bbox,
-                            page_index=page_index,
-                            source="kraken",
-                            line_id=line_id,
-                            baseline=span_baseline or None,
-                        ))
+                for word_text, span_confs, span_baseline in self._split_prediction(rec):
+                    if not word_text.strip():
+                        continue
+                    conf = float(sum(span_confs) / len(span_confs)) if span_confs else 0.0
+                    bbox = self._baseline_bbox(span_baseline) if span_baseline else (0, 0, 0, 0)
+                    all_words.append(WordToken(
+                        text=word_text,
+                        confidence=conf,
+                        bbox=bbox,
+                        page_index=page_index,
+                        source="kraken",
+                        line_id=line_id,
+                        baseline=span_baseline or None,
+                    ))
 
-                if records:
-                    line_texts.append(records[0].prediction)
-                    confs = records[0].confidences
-                    line_confidences.append(
-                        float(sum(confs) / len(confs)) if confs else 0.0
-                    )
+                line_texts.append(rec.prediction)
+                confs = rec.confidences
+                line_confidences.append(
+                    float(sum(confs) / len(confs)) if confs else 0.0
+                )
 
             page_conf = float(sum(line_confidences) / len(line_confidences)) if line_confidences else 0.0
             log.info(f"kraken: process_image done page={page_index} lines={len(line_texts)} words={len(all_words)} conf={page_conf:.3f}")
