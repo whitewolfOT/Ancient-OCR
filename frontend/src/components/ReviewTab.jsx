@@ -1,7 +1,64 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 
 const ARABIC_FONT = "'Amiri', 'Traditional Arabic', serif"
 const STORAGE_KEY = 'ancient-ocr-corrections'
+
+// ── Arabic confusion pairs (OCR lookalikes) ───────────────────────────────────
+
+const ARABIC_CONFUSION = {
+  'ب': ['ت', 'ث', 'ن', 'ي'],
+  'ت': ['ب', 'ث', 'ن'],
+  'ث': ['ب', 'ت', 'ن'],
+  'ن': ['ب', 'ت', 'ث', 'ي'],
+  'ي': ['ب', 'ن'],
+  'ج': ['ح', 'خ'],
+  'ح': ['ج', 'خ'],
+  'خ': ['ج', 'ح'],
+  'ف': ['ق'],
+  'ق': ['ف'],
+  'ص': ['ض'],
+  'ض': ['ص'],
+  'ط': ['ظ'],
+  'ظ': ['ط'],
+  'د': ['ذ'],
+  'ذ': ['د'],
+  'ر': ['ز'],
+  'ز': ['ر'],
+  'ة': ['ه'],
+  'ه': ['ة'],
+}
+
+// Generate alternative readings for a token using per-character confidences.
+// Single-character substitutions only; scored by mean character confidence.
+function generateCandidates(text, charConfs, maxCandidates = 5) {
+  if (!text) return []
+  const chars = [...text]  // Unicode-aware
+  const confs = chars.map((_, i) => charConfs?.[i] ?? 1.0)
+  const baseConf = confs.reduce((s, c) => s + c, 0) / confs.length
+
+  const seen = new Set([text])
+  const cands = [{ text, confidence: baseConf }]
+
+  chars.forEach((ch, i) => {
+    if ((charConfs?.[i] ?? 1.0) >= 0.85) return  // only low-confidence positions
+    const alts = ARABIC_CONFUSION[ch]
+    if (!alts) return
+    alts.forEach((alt, rank) => {
+      const newText = chars.map((c, j) => j === i ? alt : c).join('')
+      if (seen.has(newText)) return
+      seen.add(newText)
+      // Score: average original confs, but treat substituted char as 0.75/0.70/0.65…
+      const altConf = Math.max(0.55, 0.77 - rank * 0.06)
+      const newConfs = confs.map((c, j) => j === i ? altConf : c)
+      cands.push({
+        text: newText,
+        confidence: newConfs.reduce((s, c) => s + c, 0) / newConfs.length,
+      })
+    })
+  })
+
+  return cands.sort((a, b) => b.confidence - a.confidence).slice(0, maxCandidates)
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -101,7 +158,13 @@ function TokenDetailPanel({ token, tokenIdx, pageId, correction, onCorrect, onNe
     setEditText(token.text)
   }, [tokenIdx, token.text])
 
-  const candidates = token.candidates?.length ? token.candidates : [{ text: token.text, confidence: token.confidence }]
+  // Use API candidates if genuinely multiple; otherwise derive from char_confidences
+  const candidates = useMemo(() => {
+    const api = token.candidates ?? []
+    const distinct = [...new Set(api.map(c => c.text))]
+    if (distinct.length > 1) return api
+    return generateCandidates(token.text, token.char_confidences)
+  }, [token])
 
   function handleCandidateSelect(idx) {
     setSelectedCandidateIdx(idx)

@@ -324,12 +324,12 @@ export default function AnnotationView({ onBack }) {
         for (const h of handles) {
           if (Math.abs(pos.x - h.x) <= HANDLE_HIT && Math.abs(pos.y - h.y) <= HANDLE_HIT) {
             dragState.current = {
-              handle:   h.id,
-              startX:   pos.x,
-              startY:   pos.y,
-              origBbox: [...effectiveBbox(token, imgNaturalH)],
-              tokId:    token._baseIdx ?? token._uid,
-              isBase:   token._baseIdx !== undefined,
+              handle:     h.id,
+              startOrigX: pos.x / scale.x,   // original image coords — avoids accumulated drift
+              startOrigY: pos.y / scale.y,
+              origBbox:   [...effectiveBbox(token, imgNaturalH)],
+              tokId:      token._baseIdx ?? token._uid,
+              isBase:     token._baseIdx !== undefined,
             }
             return
           }
@@ -339,12 +339,12 @@ export default function AnnotationView({ onBack }) {
         const ox = pos.x / scale.x, oy = pos.y / scale.y
         if (ox >= bx && ox <= bx + bw && oy >= by && oy <= by + bh) {
           dragState.current = {
-            handle:   'move',
-            startX:   pos.x,
-            startY:   pos.y,
-            origBbox: [bx, by, bw, bh],
-            tokId:    token._baseIdx ?? token._uid,
-            isBase:   token._baseIdx !== undefined,
+            handle:     'move',
+            startOrigX: pos.x / scale.x,
+            startOrigY: pos.y / scale.y,
+            origBbox:   [bx, by, bw, bh],
+            tokId:      token._baseIdx ?? token._uid,
+            isBase:     token._baseIdx !== undefined,
           }
           return
         }
@@ -367,8 +367,9 @@ export default function AnnotationView({ onBack }) {
     // 3. Handle drag / resize
     if (dragState.current) {
       const ds  = dragState.current
-      const ddx = (pos.x - ds.startX) / scale.x
-      const ddy = (pos.y - ds.startY) / scale.y
+      // Delta computed in original image coordinates from the recorded start — no drift
+      const ddx = pos.x / scale.x - ds.startOrigX
+      const ddy = pos.y / scale.y - ds.startOrigY
       updateTokenBbox(ds.tokId, ds.isBase, applyHandleDrag(ds.origBbox, ds.handle, ddx, ddy))
       return
     }
@@ -639,9 +640,15 @@ export default function AnnotationView({ onBack }) {
                 return (
                   <g key={i}>
                     <rect x={rx} y={ry} width={rw} height={rh}
-                      fill={sel ? 'rgba(239,68,68,0.20)' : isManual ? 'rgba(34,197,94,0.08)' : 'rgba(250,204,21,0.08)'}
-                      stroke={sel ? '#ef4444' : isManual ? '#22c55e' : '#fbbf24'}
-                      strokeWidth={sel ? 2.5 : 0.5} rx={1} />
+                      fill={sel ? 'rgba(239,68,68,0.20)' : 'rgba(0,255,0,0.40)'}
+                      stroke={sel ? '#ef4444' : '#00ff00'}
+                      strokeWidth={sel ? 2.5 : 1} rx={1} />
+                    {/* Sequence number label */}
+                    <text x={rx + 2} y={ry + 11} fontSize="10" fontWeight="bold"
+                      fill={sel ? '#ef4444' : '#00cc00'}
+                      style={{ userSelect: 'none' }}>
+                      {i + 1}
+                    </text>
                     {/* 3. Resize handles for selected token */}
                     {sel && getHandles(tok, imgNaturalH, scale.x, scale.y).map(h => (
                       <circle key={h.id} cx={h.x} cy={h.y} r={HANDLE_R}
