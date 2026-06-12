@@ -34,6 +34,12 @@ try:
     from api.routes import register_routes
     register_routes(app)
 
+    from fastapi.staticfiles import StaticFiles
+    from pathlib import Path as _Path
+    _images_dir = _Path("data/test_images")
+    _images_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/images", StaticFiles(directory=str(_images_dir)), name="images")
+
 except ImportError as exc:
     raise RuntimeError(
         "fastapi and uvicorn are required. Install with: pip install fastapi uvicorn"

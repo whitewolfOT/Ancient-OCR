@@ -14,6 +14,10 @@ from utils.logging import get_logger
 
 log = get_logger(__name__)
 
+# Training-pairs storage — module-level so tests can monkeypatch them
+_PAIRS_DIR = Path("data/training_pairs")
+_MANIFEST  = _PAIRS_DIR / "manifest.json"
+
 # Module-level FastAPI + schema imports so ForwardRef resolution works with
 # `from __future__ import annotations` (PEP 563). FastAPI resolves body
 # annotations via typing.get_type_hints(func), which looks up names in
@@ -824,5 +828,111 @@ def register_routes(app):
         )
         entry_id = submit(entry)
         return CorrectionSubmitResponse(status="stored", entry_id=entry_id)
+
+    # ── Training pairs helpers ─────────────────────────────────────────────
+
+    import api.routes as _self
+
+    def _load_manifest() -> dict:
+        if _self._MANIFEST.exists():
+            import json as _j
+            return _j.loads(_self._MANIFEST.read_text(encoding="utf-8"))
+        return {"pairs": [], "total": 0}
+
+    def _save_manifest(manifest: dict) -> None:
+        import json as _j
+        _self._PAIRS_DIR.mkdir(parents=True, exist_ok=True)
+        _self._MANIFEST.write_text(_j.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # ── POST /api/training-pairs ───────────────────────────────────────────
+    @router.post("/api/training-pairs")
+    async def save_training_pair(
+        page_id:      str = Form(...),
+        token_index:  int = Form(...),
+        label:        str = Form(...),
+        patch_b64:    str = Form(...),
+        original_bbox: str = Form(...),
+    ):
+        import json as _j, base64 as _b64
+        from datetime import datetime, timezone
+
+        if not label.strip():
+            raise HTTPException(status_code=422, detail="label must not be empty")
+
+        try:
+            bbox = _j.loads(original_bbox)
+        except Exception:
+            raise HTTPException(status_code=422, detail="original_bbox must be a JSON array [x,y,w,h]")
+
+        try:
+            img_bytes = _b64.b64decode(patch_b64)
+        except Exception:
+            raise HTTPException(status_code=422, detail="patch_b64 is not valid base64")
+
+        page_dir = _self._PAIRS_DIR / page_id
+        page_dir.mkdir(parents=True, exist_ok=True)
+
+        patch_stem   = f"patch_{token_index:04d}"
+        patch_png    = page_dir / f"{patch_stem}.png"
+        patch_txt    = page_dir / f"{patch_stem}.txt"
+        patch_png.write_bytes(img_bytes)
+        patch_txt.write_text(label, encoding="utf-8")
+
+        pair_id      = f"{page_id}/{patch_stem}"
+        created_at   = datetime.now(timezone.utc).isoformat()
+
+        manifest = _load_manifest()
+        existing = next((i for i, p in enumerate(manifest["pairs"]) if p["id"] == pair_id), None)
+        entry = {
+            "id":          pair_id,
+            "page":        page_id,
+            "token_index": token_index,
+            "label":       label,
+            "patch_path":  str(patch_png),
+            "bbox":        bbox,
+            "created_at":  created_at,
+        }
+        if existing is not None:
+            manifest["pairs"][existing] = entry
+        else:
+            manifest["pairs"].append(entry)
+        manifest["total"] = len(manifest["pairs"])
+        _save_manifest(manifest)
+
+        return {"status": "saved", "pair_id": pair_id, "total_pairs": manifest["total"]}
+
+    # ── GET /api/training-pairs ────────────────────────────────────────────
+    @router.get("/api/training-pairs")
+    def get_training_pairs():
+        return _load_manifest()
+
+    # ── GET /api/training-pairs/count ─────────────────────────────────────
+    @router.get("/api/training-pairs/count")
+    def get_training_pairs_count():
+        return {"total": _load_manifest()["total"]}
+
+    # ── GET /api/training-pairs/export ────────────────────────────────────
+    @router.get("/api/training-pairs/export")
+    def export_training_pairs():
+        import zipfile, io as _io, json as _j
+        from fastapi.responses import StreamingResponse
+
+        manifest = _load_manifest()
+        buf = _io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("manifest.json", _j.dumps(manifest, ensure_ascii=False, indent=2))
+            for pair in manifest["pairs"]:
+                p = Path(pair["patch_path"])
+                if p.exists():
+                    zf.write(str(p), arcname=f"{pair['page']}/{p.name}")
+                txt = p.with_suffix(".txt")
+                if txt.exists():
+                    zf.write(str(txt), arcname=f"{pair['page']}/{txt.name}")
+        buf.seek(0)
+        return StreamingResponse(
+            buf,
+            media_type="application/zip",
+            headers={"Content-Disposition": "attachment; filename=training_pairs.zip"},
+        )
 
     app.include_router(router)
