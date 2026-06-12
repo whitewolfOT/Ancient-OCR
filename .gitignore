@@ -20,6 +20,9 @@ venv/
 # Runtime document storage (uploaded pages + SQLite)
 data/documents/
 
+# Generated training pairs (user-created annotation data)
+data/training_pairs/
+
 # IDE
 .idea/
 .vscode/
