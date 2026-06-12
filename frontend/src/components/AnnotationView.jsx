@@ -35,7 +35,7 @@ export default function AnnotationView({ onBack }) {
   const [savedPerPage, setSavedPerPage] = useState({})
   const [apiAvailable, setApiAvailable] = useState(true)
   const [saveFlash, setSaveFlash]       = useState(false)
-  const [displayScale, setDisplayScale] = useState(1)
+  const [scale, setScale]               = useState({ x: 1, y: 1 })  // display/original
   const [canvasSize, setCanvasSize]     = useState({ w: 1, h: 1 })
   const [imgNaturalH, setImgNaturalH]   = useState(9999)
   const [mode, setMode]                 = useState(MODE_SELECT)
@@ -43,6 +43,7 @@ export default function AnnotationView({ onBack }) {
   const [, forceUpdate]                 = useState(0)  // triggers re-render for undo/redo button state
 
   const hiddenImgRef  = useRef(null)   // full-res hidden, for canvas compositing
+  const pageImgRef    = useRef(null)   // displayed page image, for scale recompute
   const drawCanvasRef = useRef(null)   // full-page drawing canvas (overlay)
   const bgCanvasRef   = useRef(null)   // right panel: word crop
   const labelRef      = useRef(null)
@@ -78,6 +79,19 @@ export default function AnnotationView({ onBack }) {
       ;(d.pairs ?? []).forEach(p => { pp[p.page] = (pp[p.page] ?? 0) + 1 })
       setSavedPerPage(pp)
     }).catch(() => setApiAvailable(false))
+  }, [])
+
+  // Recompute scale on window resize so overlays stay aligned
+  useEffect(() => {
+    function updateScale() {
+      const img = pageImgRef.current
+      if (!img || !img.naturalWidth) return
+      const rect = img.getBoundingClientRect()
+      setScale({ x: rect.width / img.naturalWidth, y: rect.height / img.naturalHeight })
+      setCanvasSize({ w: Math.round(rect.width), h: Math.round(rect.height) })
+    }
+    window.addEventListener('resize', updateScale)
+    return () => window.removeEventListener('resize', updateScale)
   }, [])
 
   // ── Token helpers ─────────────────────────────────────────────────────────
@@ -149,8 +163,7 @@ export default function AnnotationView({ onBack }) {
   function onPageImgLoad(e) {
     const img  = e.target
     const rect = img.getBoundingClientRect()
-    const s    = rect.width / img.naturalWidth
-    setDisplayScale(s)
+    setScale({ x: rect.width / img.naturalWidth, y: rect.height / img.naturalHeight })
     setCanvasSize({ w: Math.round(rect.width), h: Math.round(rect.height) })
     setImgNaturalH(img.naturalHeight)
   }
@@ -274,8 +287,8 @@ export default function AnnotationView({ onBack }) {
       if (pendingClick.current) {
         // Quick click: hit-test token bboxes
         const p  = canvasPos(e)
-        const ox = p.x / displayScale
-        const oy = p.y / displayScale
+        const ox = p.x / scale.x
+        const oy = p.y / scale.y
         for (let i = 0; i < allTokens.length; i++) {
           const [bx, by, bw, bh] = effectiveBbox(allTokens[i], imgNaturalH)
           if (ox >= bx && ox <= bx + bw && oy >= by && oy <= by + bh) {
@@ -294,10 +307,10 @@ export default function AnnotationView({ onBack }) {
       const pos = canvasPos(e)
       const bst = boxStart.current
       if (bst) {
-        const rx = Math.min(bst.x, pos.x) / displayScale
-        const ry = Math.min(bst.y, pos.y) / displayScale
-        const rw = Math.abs(pos.x - bst.x) / displayScale
-        const rh = Math.abs(pos.y - bst.y) / displayScale
+        const rx = Math.min(bst.x, pos.x) / scale.x
+        const ry = Math.min(bst.y, pos.y) / scale.y
+        const rw = Math.abs(pos.x - bst.x) / scale.x
+        const rh = Math.abs(pos.y - bst.y) / scale.y
         if (rw > 4 && rh > 4) {
           const newIdx = allTokens.length
           setManualTokens(prev => [...prev, {
@@ -313,8 +326,8 @@ export default function AnnotationView({ onBack }) {
     } else if (mode === MODE_LASSO && isDrawing.current) {
       const pts = lassoPath.current
       if (pts.length > 3) {
-        const xs = pts.map(p => p.x / displayScale)
-        const ys = pts.map(p => p.y / displayScale)
+        const xs = pts.map(p => p.x / scale.x)
+        const ys = pts.map(p => p.y / scale.y)
         const lx = Math.min(...xs), ly = Math.min(...ys)
         const lw = Math.max(...xs) - lx, lh = Math.max(...ys) - ly
 
@@ -373,8 +386,7 @@ export default function AnnotationView({ onBack }) {
     off.width = cw; off.height = ch
     const ctx = off.getContext('2d')
     ctx.drawImage(img, x, y, w, h, 0, 0, cw, ch)
-    const ds  = displayScale
-    ctx.drawImage(strokes, x * ds, y * ds, w * ds, h * ds, 0, 0, cw, ch)
+    ctx.drawImage(strokes, x * scale.x, y * scale.y, w * scale.x, h * scale.y, 0, 0, cw, ch)
 
     const patchB64 = off.toDataURL('image/png').split(',')[1]
     const form     = new FormData()
@@ -397,7 +409,7 @@ export default function AnnotationView({ onBack }) {
     } catch {
       setApiAvailable(false)
     }
-  }, [token, pageId, tokenIdx, displayScale, imgNaturalH, goNext])
+  }, [token, pageId, tokenIdx, scale, imgNaturalH, goNext])
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
 
@@ -512,6 +524,7 @@ export default function AnnotationView({ onBack }) {
 
           <div className="relative inline-block select-none">
             <img
+              ref={pageImgRef}
               src={`/images/${pageId}`}
               onLoad={onPageImgLoad}
               className="block max-w-full"
@@ -527,14 +540,13 @@ export default function AnnotationView({ onBack }) {
               {allTokens.map((tok, i) => {
                 if (!tok.bbox) return null
                 const [bx, by, bw, bh] = effectiveBbox(tok, imgNaturalH)
-                const s        = displayScale
                 const sel      = i === tokenIdx
                 const isManual = tok.source === 'manual'
                 return (
                   <rect
                     key={i}
-                    x={bx * s} y={by * s}
-                    width={Math.max(bw * s, 4)} height={Math.max(bh * s, 4)}
+                    x={bx * scale.x} y={by * scale.y}
+                    width={Math.max(bw * scale.x, 4)} height={Math.max(bh * scale.y, 4)}
                     fill={sel ? 'rgba(239,68,68,0.20)' : isManual ? 'rgba(34,197,94,0.08)' : 'rgba(250,204,21,0.08)'}
                     stroke={sel ? '#ef4444' : isManual ? '#22c55e' : '#fbbf24'}
                     strokeWidth={sel ? 2.5 : 0.5}
