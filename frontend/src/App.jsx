@@ -8,6 +8,7 @@ import WorkflowBar from './components/WorkflowBar'
 import SimilarPagesPanel from './components/SimilarPagesPanel'
 import ProfileSelector from './components/ProfileSelector'
 import ReviewTab from './components/ReviewTab'
+import AnnotationView from './components/AnnotationView'
 import { runPageOCR } from './api/client'
 
 export default function App() {
@@ -55,6 +56,15 @@ export default function App() {
     }
   }
 
+  // ── Annotate view ────────────────────────────────────────────────────────
+  if (activeView === 'annotate') {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden">
+        <AnnotationView onBack={() => setActiveView('workspace')} />
+      </div>
+    )
+  }
+
   // ── Review view (always available, no doc required) ─────────────────────
   if (activeView === 'review') {
     return (
@@ -81,12 +91,18 @@ export default function App() {
             Upload a document to begin preprocessing calibration
           </p>
           <UploadZone onSuccess={handleUploadSuccess} />
-          <div className="mt-4 text-center">
+          <div className="mt-4 flex justify-center gap-6">
             <button
               onClick={() => setActiveView('review')}
               className="text-sm text-indigo-600 hover:underline"
             >
               View OCR results →
+            </button>
+            <button
+              onClick={() => setActiveView('annotate')}
+              className="text-sm text-indigo-600 hover:underline"
+            >
+              ✏️ Annotate →
             </button>
           </div>
         </div>
@@ -101,12 +117,20 @@ export default function App() {
         <div className="flex-1">
           <WorkflowBar hasOcrResults={ocrTokens !== null} />
         </div>
-        <button
-          onClick={() => setActiveView('review')}
-          className="mr-3 rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
-        >
-          Review Results
-        </button>
+        <div className="mr-3 flex gap-2">
+          <button
+            onClick={() => setActiveView('review')}
+            className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            Review Results
+          </button>
+          <button
+            onClick={() => setActiveView('annotate')}
+            className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            ✏️ Annotate
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
