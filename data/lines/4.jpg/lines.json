@@ -1,0 +1,1572 @@
+{
+  "page": "4.jpg",
+  "original_size": [
+    1524,
+    2006
+  ],
+  "seg_source": "kraken",
+  "lines": [
+    {
+      "index": 0,
+      "image_path": "data/lines/4.jpg/line_000.png",
+      "ocr_text": "علي داصير تعالمتو فرمه طرايق عددًا البا القول",
+      "baseline": [
+        [
+          1277,
+          91
+        ],
+        [
+          1383,
+          92
+        ]
+      ],
+      "bbox": [
+        1276,
+        28,
+        107,
+        81
+      ],
+      "confidence": 0.8885
+    },
+    {
+      "index": 1,
+      "image_path": "data/lines/4.jpg/line_001.png",
+      "ocr_text": "في تيفية",
+      "baseline": [
+        [
+          1198,
+          114
+        ],
+        [
+          1263,
+          113
+        ]
+      ],
+      "bbox": [
+        1196,
+        51,
+        67,
+        73
+      ],
+      "confidence": 0.9553
+    },
+    {
+      "index": 2,
+      "image_path": "data/lines/4.jpg/line_002.png",
+      "ocr_text": "كون البنات",
+      "baseline": [
+        [
+          963,
+          95
+        ],
+        [
+          1160,
+          90
+        ]
+      ],
+      "bbox": [
+        961,
+        28,
+        199,
+        107
+      ],
+      "confidence": 0.9994
+    },
+    {
+      "index": 3,
+      "image_path": "data/lines/4.jpg/line_003.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          881,
+          115
+        ],
+        [
+          937,
+          115
+        ]
+      ],
+      "bbox": [
+        881,
+        72,
+        56,
+        63
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 4,
+      "image_path": "data/lines/4.jpg/line_004.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          460,
+          119
+        ],
+        [
+          824,
+          110
+        ]
+      ],
+      "bbox": [
+        458,
+        43,
+        366,
+        92
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 5,
+      "image_path": "data/lines/4.jpg/line_005.png",
+      "ocr_text": "ولميته الشاني",
+      "baseline": [
+        [
+          750,
+          195
+        ],
+        [
+          1393,
+          189
+        ]
+      ],
+      "bbox": [
+        749,
+        129,
+        644,
+        84
+      ],
+      "confidence": 0.9149
+    },
+    {
+      "index": 6,
+      "image_path": "data/lines/4.jpg/line_006.png",
+      "ocr_text": "فما يوافق البنات من الارضين والترقين الباب",
+      "baseline": [
+        [
+          418,
+          219
+        ],
+        [
+          445,
+          218
+        ]
+      ],
+      "bbox": [
+        416,
+        193,
+        29,
+        38
+      ],
+      "confidence": 0.982
+    },
+    {
+      "index": 7,
+      "image_path": "data/lines/4.jpg/line_007.png",
+      "ocr_text": "البا",
+      "baseline": [
+        [
+          156,
+          129
+        ],
+        [
+          209,
+          128
+        ]
+      ],
+      "bbox": [
+        153,
+        80,
+        56,
+        63
+      ],
+      "confidence": 0.9928
+    },
+    {
+      "index": 8,
+      "image_path": "data/lines/4.jpg/line_008.png",
+      "ocr_text": "الثالث",
+      "baseline": [
+        [
+          137,
+          296
+        ],
+        [
+          357,
+          291
+        ],
+        [
+          575,
+          278
+        ],
+        [
+          1318,
+          278
+        ]
+      ],
+      "bbox": [
+        136,
+        206,
+        1182,
+        96
+      ],
+      "confidence": 0.9992
+    },
+    {
+      "index": 9,
+      "image_path": "data/lines/4.jpg/line_009.png",
+      "ocr_text": "لى المبوب والراد",
+      "baseline": [
+        [
+          1061,
+          357
+        ],
+        [
+          1255,
+          351
+        ],
+        [
+          1356,
+          353
+        ]
+      ],
+      "bbox": [
+        1059,
+        297,
+        297,
+        84
+      ],
+      "confidence": 0.8671
+    },
+    {
+      "index": 10,
+      "image_path": "data/lines/4.jpg/line_010.png",
+      "ocr_text": "فوقلاحة والقطياني الياب",
+      "baseline": [
+        [
+          693,
+          366
+        ],
+        [
+          1054,
+          358
+        ]
+      ],
+      "bbox": [
+        691,
+        288,
+        363,
+        92
+      ],
+      "confidence": 0.8715
+    },
+    {
+      "index": 11,
+      "image_path": "data/lines/4.jpg/line_011.png",
+      "ocr_text": "فلاحة اصناف الذي البقول لتمره البان المامنيد\"",
+      "baseline": [
+        [
+          648,
+          453
+        ],
+        [
+          988,
+          441
+        ],
+        [
+          1405,
+          440
+        ]
+      ],
+      "bbox": [
+        647,
+        369,
+        758,
+        99
+      ],
+      "confidence": 0.9483
+    },
+    {
+      "index": 12,
+      "image_path": "data/lines/4.jpg/line_012.png",
+      "ocr_text": "النومي بنيساه",
+      "baseline": [
+        [
+          1385,
+          551
+        ],
+        [
+          1409,
+          551
+        ]
+      ],
+      "bbox": [
+        1385,
+        490,
+        24,
+        75
+      ],
+      "confidence": 0.8341
+    },
+    {
+      "index": 13,
+      "image_path": "data/lines/4.jpg/line_013.png",
+      "ocr_text": "في فلوحة قبير البايس البياد",
+      "baseline": [
+        [
+          596,
+          543
+        ],
+        [
+          770,
+          533
+        ],
+        [
+          840,
+          524
+        ],
+        [
+          1272,
+          529
+        ],
+        [
+          1360,
+          537
+        ]
+      ],
+      "bbox": [
+        596,
+        460,
+        764,
+        91
+      ],
+      "confidence": 0.9152
+    },
+    {
+      "index": 14,
+      "image_path": "data/lines/4.jpg/line_014.png",
+      "ocr_text": "في حد دي لا لغمره البانس البنابسحن",
+      "baseline": [
+        [
+          962,
+          620
+        ],
+        [
+          1413,
+          624
+        ]
+      ],
+      "bbox": [
+        961,
+        560,
+        452,
+        84
+      ],
+      "confidence": 0.9057
+    },
+    {
+      "index": 15,
+      "image_path": "data/lines/4.jpg/line_015.png",
+      "ocr_text": "فله البنات",
+      "baseline": [
+        [
+          665,
+          627
+        ],
+        [
+          887,
+          624
+        ]
+      ],
+      "bbox": [
+        663,
+        558,
+        224,
+        82
+      ],
+      "confidence": 0.9205
+    },
+    {
+      "index": 16,
+      "image_path": "data/lines/4.jpg/line_016.png",
+      "ocr_text": "في فله حة قتر ولا نوى الباب النامن ن",
+      "baseline": [
+        [
+          829,
+          705
+        ],
+        [
+          1231,
+          704
+        ],
+        [
+          1411,
+          713
+        ]
+      ],
+      "bbox": [
+        828,
+        641,
+        583,
+        91
+      ],
+      "confidence": 0.8788
+    },
+    {
+      "index": 17,
+      "image_path": "data/lines/4.jpg/line_017.png",
+      "ocr_text": "الى",
+      "baseline": [
+        [
+          1391,
+          823
+        ],
+        [
+          1401,
+          823
+        ]
+      ],
+      "bbox": [
+        1391,
+        795,
+        10,
+        43
+      ],
+      "confidence": 0.9751
+    },
+    {
+      "index": 18,
+      "image_path": "data/lines/4.jpg/line_018.png",
+      "ocr_text": "في حة التانيسعين",
+      "baseline": [
+        [
+          1151,
+          793
+        ],
+        [
+          1280,
+          793
+        ],
+        [
+          1355,
+          802
+        ]
+      ],
+      "bbox": [
+        1150,
+        739,
+        206,
+        77
+      ],
+      "confidence": 0.9619
+    },
+    {
+      "index": 19,
+      "image_path": "data/lines/4.jpg/line_019.png",
+      "ocr_text": "فاره انواه الرياحكن الباب",
+      "baseline": [
+        [
+          906,
+          784
+        ],
+        [
+          1107,
+          786
+        ]
+      ],
+      "bbox": [
+        905,
+        722,
+        202,
+        99
+      ],
+      "confidence": 0.8803
+    },
+    {
+      "index": 20,
+      "image_path": "data/lines/4.jpg/line_020.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1060,
+          807
+        ],
+        [
+          1066,
+          807
+        ]
+      ],
+      "bbox": [
+        1060,
+        786,
+        6,
+        33
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 21,
+      "image_path": "data/lines/4.jpg/line_021.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          906,
+          807
+        ],
+        [
+          917,
+          807
+        ]
+      ],
+      "bbox": [
+        906,
+        792,
+        11,
+        39
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 22,
+      "image_path": "data/lines/4.jpg/line_022.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1338,
+          996
+        ],
+        [
+          1348,
+          996
+        ]
+      ],
+      "bbox": [
+        1338,
+        967,
+        10,
+        37
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 23,
+      "image_path": "data/lines/4.jpg/line_023.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          347,
+          356
+        ],
+        [
+          478,
+          358
+        ]
+      ],
+      "bbox": [
+        346,
+        299,
+        132,
+        92
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 24,
+      "image_path": "data/lines/4.jpg/line_024.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          244,
+          452
+        ],
+        [
+          344,
+          452
+        ]
+      ],
+      "bbox": [
+        244,
+        396,
+        100,
+        72
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 25,
+      "image_path": "data/lines/4.jpg/line_025.png",
+      "ocr_text": "البيات",
+      "baseline": [
+        [
+          107,
+          478
+        ],
+        [
+          128,
+          475
+        ]
+      ],
+      "bbox": [
+        103,
+        443,
+        25,
+        44
+      ],
+      "confidence": 0.9815
+    },
+    {
+      "index": 26,
+      "image_path": "data/lines/4.jpg/line_026.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          107,
+          554
+        ],
+        [
+          278,
+          544
+        ],
+        [
+          470,
+          547
+        ]
+      ],
+      "bbox": [
+        105,
+        476,
+        365,
+        90
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 27,
+      "image_path": "data/lines/4.jpg/line_027.png",
+      "ocr_text": "البنيسات الدي",
+      "baseline": [
+        [
+          112,
+          633
+        ],
+        [
+          496,
+          633
+        ]
+      ],
+      "bbox": [
+        112,
+        572,
+        384,
+        89
+      ],
+      "confidence": 0.9047
+    },
+    {
+      "index": 28,
+      "image_path": "data/lines/4.jpg/line_028.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          108,
+          718
+        ],
+        [
+          418,
+          722
+        ],
+        [
+          709,
+          715
+        ]
+      ],
+      "bbox": [
+        107,
+        647,
+        602,
+        92
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 29,
+      "image_path": "data/lines/4.jpg/line_029.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          662,
+          799
+        ],
+        [
+          853,
+          800
+        ]
+      ],
+      "bbox": [
+        661,
+        729,
+        192,
+        81
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 30,
+      "image_path": "data/lines/4.jpg/line_030.png",
+      "ocr_text": "في ذكر انتجار منان والصموني البانس اله ولسابن",
+      "baseline": [
+        [
+          593,
+          907
+        ],
+        [
+          822,
+          910
+        ],
+        [
+          890,
+          903
+        ],
+        [
+          1249,
+          904
+        ]
+      ],
+      "bbox": [
+        591,
+        825,
+        658,
+        103
+      ],
+      "confidence": 0.9498
+    },
+    {
+      "index": 31,
+      "image_path": "data/lines/4.jpg/line_031.png",
+      "ocr_text": "ليعبة كون",
+      "baseline": [
+        [
+          729,
+          1001
+        ],
+        [
+          1054,
+          1006
+        ],
+        [
+          1269,
+          1002
+        ],
+        [
+          1333,
+          997
+        ]
+      ],
+      "bbox": [
+        727,
+        942,
+        606,
+        84
+      ],
+      "confidence": 0.9123
+    },
+    {
+      "index": 32,
+      "image_path": "data/lines/4.jpg/line_032.png",
+      "ocr_text": "حلى في ان",
+      "baseline": [
+        [
+          1332,
+          1017
+        ],
+        [
+          1409,
+          1025
+        ]
+      ],
+      "bbox": [
+        1327,
+        999,
+        83,
+        59
+      ],
+      "confidence": 0.9884
+    },
+    {
+      "index": 33,
+      "image_path": "data/lines/4.jpg/line_033.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          409,
+          809
+        ],
+        [
+          448,
+          809
+        ]
+      ],
+      "bbox": [
+        409,
+        747,
+        39,
+        81
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 34,
+      "image_path": "data/lines/4.jpg/line_034.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          282,
+          809
+        ],
+        [
+          324,
+          801
+        ],
+        [
+          367,
+          803
+        ]
+      ],
+      "bbox": [
+        278,
+        763,
+        89,
+        50
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 35,
+      "image_path": "data/lines/4.jpg/line_035.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          112,
+          825
+        ],
+        [
+          186,
+          825
+        ]
+      ],
+      "bbox": [
+        112,
+        786,
+        74,
+        59
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 36,
+      "image_path": "data/lines/4.jpg/line_036.png",
+      "ocr_text": "في النيات ولميته العسسول النقلم).",
+      "baseline": [
+        [
+          384,
+          1007
+        ],
+        [
+          591,
+          1002
+        ]
+      ],
+      "bbox": [
+        382,
+        921,
+        209,
+        113
+      ],
+      "confidence": 0.9344
+    },
+    {
+      "index": 37,
+      "image_path": "data/lines/4.jpg/line_037.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          112,
+          936
+        ],
+        [
+          293,
+          931
+        ]
+      ],
+      "bbox": [
+        110,
+        846,
+        183,
+        101
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 38,
+      "image_path": "data/lines/4.jpg/line_038.png",
+      "ocr_text": "ليما احيط الى المبيعود كنات مروني الدهب ادم عليه مؤدعة السلوم دن",
+      "baseline": [
+        [
+          226,
+          1135
+        ],
+        [
+          802,
+          1115
+        ],
+        [
+          1128,
+          1114
+        ],
+        [
+          1381,
+          1104
+        ]
+      ],
+      "bbox": [
+        224,
+        1027,
+        1157,
+        133
+      ],
+      "confidence": 0.9113
+    },
+    {
+      "index": 39,
+      "image_path": "data/lines/4.jpg/line_039.png",
+      "ocr_text": "الارفن خرن من الجنة ومعه شلونون قفينًا",
+      "baseline": [
+        [
+          1233,
+          1200
+        ],
+        [
+          1424,
+          1193
+        ]
+      ],
+      "bbox": [
+        1229,
+        1120,
+        195,
+        93
+      ],
+      "confidence": 0.9513
+    },
+    {
+      "index": 40,
+      "image_path": "data/lines/4.jpg/line_040.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          120,
+          1023
+        ],
+        [
+          217,
+          1023
+        ]
+      ],
+      "bbox": [
+        120,
+        963,
+        97,
+        82
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 41,
+      "image_path": "data/lines/4.jpg/line_041.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          123,
+          1147
+        ],
+        [
+          186,
+          1143
+        ]
+      ],
+      "bbox": [
+        120,
+        1097,
+        66,
+        73
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 42,
+      "image_path": "data/lines/4.jpg/line_042.png",
+      "ocr_text": "اصينا ف الثمر منها لها قشر",
+      "baseline": [
+        [
+          136,
+          1234
+        ],
+        [
+          508,
+          1219
+        ],
+        [
+          1169,
+          1216
+        ]
+      ],
+      "bbox": [
+        134,
+        1159,
+        1035,
+        88
+      ],
+      "confidence": 0.9206
+    },
+    {
+      "index": 43,
+      "image_path": "data/lines/4.jpg/line_043.png",
+      "ocr_text": "والبلوط عشره وحى الجور واللوز والملوز والفسق",
+      "baseline": [
+        [
+          770,
+          1310
+        ],
+        [
+          1177,
+          1290
+        ],
+        [
+          1429,
+          1289
+        ]
+      ],
+      "bbox": [
+        768,
+        1218,
+        661,
+        113
+      ],
+      "confidence": 0.9394
+    },
+    {
+      "index": 44,
+      "image_path": "data/lines/4.jpg/line_044.png",
+      "ocr_text": "لخر والتناه بلوط والصنير والناربح والرمان والمنشخات",
+      "baseline": [
+        [
+          1228,
+          1384
+        ],
+        [
+          1403,
+          1374
+        ]
+      ],
+      "bbox": [
+        1225,
+        1302,
+        178,
+        115
+      ],
+      "confidence": 0.9299
+    },
+    {
+      "index": 45,
+      "image_path": "data/lines/4.jpg/line_045.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          657,
+          1405
+        ],
+        [
+          985,
+          1393
+        ],
+        [
+          1196,
+          1390
+        ]
+      ],
+      "bbox": [
+        655,
+        1327,
+        541,
+        100
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 46,
+      "image_path": "data/lines/4.jpg/line_046.png",
+      "ocr_text": "يعانوني وهي الزيتون والرطب والمتميت والاجامن",
+      "baseline": [
+        [
+          934,
+          1498
+        ],
+        [
+          1124,
+          1488
+        ],
+        [
+          1445,
+          1485
+        ]
+      ],
+      "bbox": [
+        932,
+        1410,
+        513,
+        107
+      ],
+      "confidence": 0.9382
+    },
+    {
+      "index": 47,
+      "image_path": "data/lines/4.jpg/line_047.png",
+      "ocr_text": "والنيق والعناب والمحبطيا والزعرور ومنها عشرقليي",
+      "baseline": [
+        [
+          1299,
+          1560
+        ],
+        [
+          1445,
+          1557
+        ]
+      ],
+      "bbox": [
+        1297,
+        1497,
+        148,
+        97
+      ],
+      "confidence": 0.9677
+    },
+    {
+      "index": 48,
+      "image_path": "data/lines/4.jpg/line_048.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1233,
+          1584
+        ],
+        [
+          1355,
+          1583
+        ]
+      ],
+      "bbox": [
+        1231,
+        1560,
+        124,
+        42
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 49,
+      "image_path": "data/lines/4.jpg/line_049.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          736,
+          1494
+        ],
+        [
+          778,
+          1493
+        ]
+      ],
+      "bbox": [
+        734,
+        1443,
+        44,
+        73
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 50,
+      "image_path": "data/lines/4.jpg/line_050.png",
+      "ocr_text": "وينها",
+      "baseline": [
+        [
+          579,
+          1397
+        ],
+        [
+          612,
+          1399
+        ]
+      ],
+      "bbox": [
+        576,
+        1361,
+        37,
+        73
+      ],
+      "confidence": 0.8112
+    },
+    {
+      "index": 51,
+      "image_path": "data/lines/4.jpg/line_051.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          140,
+          1338
+        ],
+        [
+          531,
+          1318
+        ]
+      ],
+      "bbox": [
+        138,
+        1257,
+        393,
+        104
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 52,
+      "image_path": "data/lines/4.jpg/line_052.png",
+      "ocr_text": "عشدم",
+      "baseline": [
+        [
+          337,
+          1429
+        ],
+        [
+          539,
+          1418
+        ]
+      ],
+      "bbox": [
+        333,
+        1345,
+        206,
+        97
+      ],
+      "confidence": 0.8599
+    },
+    {
+      "index": 53,
+      "image_path": "data/lines/4.jpg/line_053.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          251,
+          1443
+        ],
+        [
+          334,
+          1430
+        ]
+      ],
+      "bbox": [
+        239,
+        1364,
+        96,
+        101
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 54,
+      "image_path": "data/lines/4.jpg/line_054.png",
+      "ocr_text": "والغبيرا",
+      "baseline": [
+        [
+          175,
+          1526
+        ],
+        [
+          396,
+          1521
+        ],
+        [
+          531,
+          1508
+        ],
+        [
+          706,
+          1502
+        ]
+      ],
+      "bbox": [
+        172,
+        1447,
+        534,
+        99
+      ],
+      "confidence": 0.9187
+    },
+    {
+      "index": 55,
+      "image_path": "data/lines/4.jpg/line_055.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          702,
+          1594
+        ],
+        [
+          1218,
+          1584
+        ]
+      ],
+      "bbox": [
+        700,
+        1520,
+        518,
+        90
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 56,
+      "image_path": "data/lines/4.jpg/line_056.png",
+      "ocr_text": "انبر وله نوى وهي التفاة والتتعرجيل والكمتوعي والعنب والتين",
+      "baseline": [
+        [
+          930,
+          1687
+        ],
+        [
+          1157,
+          1687
+        ],
+        [
+          1337,
+          1678
+        ],
+        [
+          1398,
+          1681
+        ]
+      ],
+      "bbox": [
+        928,
+        1613,
+        470,
+        95
+      ],
+      "confidence": 0.8708
+    },
+    {
+      "index": 57,
+      "image_path": "data/lines/4.jpg/line_057.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          746,
+          1680
+        ],
+        [
+          869,
+          1678
+        ]
+      ],
+      "bbox": [
+        745,
+        1619,
+        124,
+        79
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 58,
+      "image_path": "data/lines/4.jpg/line_058.png",
+      "ocr_text": "لمذ",
+      "baseline": [
+        [
+          212,
+          1620
+        ],
+        [
+          400,
+          1608
+        ],
+        [
+          566,
+          1611
+        ]
+      ],
+      "bbox": [
+        210,
+        1549,
+        356,
+        85
+      ],
+      "confidence": 0.7232
+    },
+    {
+      "index": 59,
+      "image_path": "data/lines/4.jpg/line_059.png",
+      "ocr_text": "والاترج",
+      "baseline": [
+        [
+          500,
+          1710
+        ],
+        [
+          595,
+          1703
+        ],
+        [
+          713,
+          1703
+        ]
+      ],
+      "bbox": [
+        498,
+        1630,
+        215,
+        105
+      ],
+      "confidence": 0.9862
+    },
+    {
+      "index": 60,
+      "image_path": "data/lines/4.jpg/line_060.png",
+      "ocr_text": "والخزبوب والتوت والقناء والبطيخ واما القول العقلي",
+      "baseline": [
+        [
+          593,
+          1783
+        ],
+        [
+          1118,
+          1778
+        ],
+        [
+          1293,
+          1768
+        ],
+        [
+          1440,
+          1770
+        ]
+      ],
+      "bbox": [
+        591,
+        1707,
+        849,
+        107
+      ],
+      "confidence": 0.978
+    },
+    {
+      "index": 61,
+      "image_path": "data/lines/4.jpg/line_061.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          171,
+          1728
+        ],
+        [
+          452,
+          1716
+        ]
+      ],
+      "bbox": [
+        168,
+        1654,
+        284,
+        93
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 62,
+      "image_path": "data/lines/4.jpg/line_062.png",
+      "ocr_text": "قال الغله",
+      "baseline": [
+        [
+          250,
+          1818
+        ],
+        [
+          508,
+          1809
+        ]
+      ],
+      "bbox": [
+        248,
+        1741,
+        260,
+        98
+      ],
+      "confidence": 0.9177
+    },
+    {
+      "index": 63,
+      "image_path": "data/lines/4.jpg/line_063.png",
+      "ocr_text": "جو يا في لتاب حة البنطييد ان الاد 3",
+      "baseline": [
+        [
+          241,
+          1931
+        ],
+        [
+          399,
+          1930
+        ],
+        [
+          748,
+          1897
+        ],
+        [
+          1094,
+          1900
+        ],
+        [
+          1442,
+          1892
+        ]
+      ],
+      "bbox": [
+        238,
+        1809,
+        1204,
+        150
+      ],
+      "confidence": 0.9345
+    },
+    {
+      "index": 64,
+      "image_path": "data/lines/4.jpg/line_064.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1082,
+          1944
+        ],
+        [
+          1103,
+          1946
+        ]
+      ],
+      "bbox": [
+        1080,
+        1909,
+        24,
+        56
+      ],
+      "confidence": 0.0
+    }
+  ]
+}

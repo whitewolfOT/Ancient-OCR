@@ -1,0 +1,1156 @@
+{
+  "page": "8.jpg",
+  "original_size": [
+    1292,
+    1980
+  ],
+  "seg_source": "kraken",
+  "lines": [
+    {
+      "index": 0,
+      "image_path": "data/lines/8.jpg/line_000.png",
+      "ocr_text": "اتفاق شتى مامل الى رض مع شي ما من الجواء مع شي حامي حداد النتمسي",
+      "baseline": [
+        [
+          435,
+          129
+        ],
+        [
+          1197,
+          127
+        ]
+      ],
+      "bbox": [
+        434,
+        63,
+        763,
+        95
+      ],
+      "confidence": 0.9224
+    },
+    {
+      "index": 1,
+      "image_path": "data/lines/8.jpg/line_001.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          172,
+          150
+        ],
+        [
+          347,
+          145
+        ]
+      ],
+      "bbox": [
+        169,
+        78,
+        178,
+        85
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 2,
+      "image_path": "data/lines/8.jpg/line_002.png",
+      "ocr_text": "تحر ما مسلت الكوالب فجتمع من ذلك طبع ما يجدت في تلك",
+      "baseline": [
+        [
+          283,
+          229
+        ],
+        [
+          931,
+          227
+        ],
+        [
+          1201,
+          209
+        ]
+      ],
+      "bbox": [
+        282,
+        154,
+        919,
+        103
+      ],
+      "confidence": 0.9626
+    },
+    {
+      "index": 3,
+      "image_path": "data/lines/8.jpg/line_003.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1158,
+          237
+        ],
+        [
+          1200,
+          238
+        ]
+      ],
+      "bbox": [
+        1157,
+        220,
+        43,
+        31
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 4,
+      "image_path": "data/lines/8.jpg/line_004.png",
+      "ocr_text": "مع من",
+      "baseline": [
+        [
+          74,
+          155
+        ],
+        [
+          161,
+          149
+        ]
+      ],
+      "bbox": [
+        71,
+        100,
+        90,
+        68
+      ],
+      "confidence": 0.998
+    },
+    {
+      "index": 5,
+      "image_path": "data/lines/8.jpg/line_005.png",
+      "ocr_text": "شيأ كان",
+      "baseline": [
+        [
+          59,
+          254
+        ],
+        [
+          203,
+          248
+        ]
+      ],
+      "bbox": [
+        56,
+        171,
+        147,
+        96
+      ],
+      "confidence": 0.9232
+    },
+    {
+      "index": 6,
+      "image_path": "data/lines/8.jpg/line_006.png",
+      "ocr_text": "الارض من نبات وغكري من الكائنات وهذ اله ختلوف",
+      "baseline": [
+        [
+          64,
+          337
+        ],
+        [
+          382,
+          324
+        ],
+        [
+          669,
+          322
+        ],
+        [
+          893,
+          323
+        ],
+        [
+          1207,
+          333
+        ]
+      ],
+      "bbox": [
+        63,
+        251,
+        1144,
+        98
+      ],
+      "confidence": 0.9515
+    },
+    {
+      "index": 7,
+      "image_path": "data/lines/8.jpg/line_007.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1168,
+          451
+        ],
+        [
+          1192,
+          452
+        ]
+      ],
+      "bbox": [
+        1167,
+        387,
+        27,
+        76
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 8,
+      "image_path": "data/lines/8.jpg/line_008.png",
+      "ocr_text": "في ولونه بجيب من",
+      "baseline": [
+        [
+          1075,
+          419
+        ],
+        [
+          1166,
+          419
+        ]
+      ],
+      "bbox": [
+        1075,
+        363,
+        91,
+        93
+      ],
+      "confidence": 0.9424
+    },
+    {
+      "index": 9,
+      "image_path": "data/lines/8.jpg/line_009.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1009,
+          554
+        ],
+        [
+          1205,
+          554
+        ]
+      ],
+      "bbox": [
+        1009,
+        495,
+        196,
+        77
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 10,
+      "image_path": "data/lines/8.jpg/line_010.png",
+      "ocr_text": "طيع وخاصبته وذلك الزيادة والنقصان",
+      "baseline": [
+        [
+          73,
+          433
+        ],
+        [
+          691,
+          415
+        ],
+        [
+          972,
+          419
+        ]
+      ],
+      "bbox": [
+        71,
+        347,
+        901,
+        102
+      ],
+      "confidence": 0.9563
+    },
+    {
+      "index": 11,
+      "image_path": "data/lines/8.jpg/line_011.png",
+      "ocr_text": "العناص وبقدد المكان الدى يت له والزمان الذني تمر عليه",
+      "baseline": [
+        [
+          669,
+          544
+        ],
+        [
+          738,
+          547
+        ],
+        [
+          954,
+          543
+        ]
+      ],
+      "bbox": [
+        668,
+        462,
+        286,
+        105
+      ],
+      "confidence": 0.9414
+    },
+    {
+      "index": 12,
+      "image_path": "data/lines/8.jpg/line_012.png",
+      "ocr_text": "منه يا حود يلي وهوترابعي وما حو ججر وما خومائي وما هوهواني",
+      "baseline": [
+        [
+          892,
+          641
+        ],
+        [
+          1205,
+          629
+        ]
+      ],
+      "bbox": [
+        889,
+        576,
+        316,
+        89
+      ],
+      "confidence": 0.9247
+    },
+    {
+      "index": 13,
+      "image_path": "data/lines/8.jpg/line_013.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          550,
+          541
+        ],
+        [
+          625,
+          541
+        ]
+      ],
+      "bbox": [
+        550,
+        463,
+        75,
+        92
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 14,
+      "image_path": "data/lines/8.jpg/line_014.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          578,
+          639
+        ],
+        [
+          699,
+          638
+        ]
+      ],
+      "bbox": [
+        577,
+        585,
+        122,
+        75
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 15,
+      "image_path": "data/lines/8.jpg/line_015.png",
+      "ocr_text": "قعياد",
+      "baseline": [
+        [
+          77,
+          525
+        ],
+        [
+          297,
+          525
+        ]
+      ],
+      "bbox": [
+        77,
+        455,
+        220,
+        88
+      ],
+      "confidence": 0.8342
+    },
+    {
+      "index": 16,
+      "image_path": "data/lines/8.jpg/line_016.png",
+      "ocr_text": "فاذا نقل",
+      "baseline": [
+        [
+          586,
+          664
+        ],
+        [
+          866,
+          662
+        ]
+      ],
+      "bbox": [
+        585,
+        624,
+        281,
+        52
+      ],
+      "confidence": 0.9988
+    },
+    {
+      "index": 17,
+      "image_path": "data/lines/8.jpg/line_017.png",
+      "ocr_text": "من اما من",
+      "baseline": [
+        [
+          119,
+          655
+        ],
+        [
+          429,
+          642
+        ]
+      ],
+      "bbox": [
+        116,
+        580,
+        314,
+        107
+      ],
+      "confidence": 0.9987
+    },
+    {
+      "index": 18,
+      "image_path": "data/lines/8.jpg/line_018.png",
+      "ocr_text": "الكيفيه منبة قبيلد وبطبل جحة الخاصي واسامي حصة",
+      "baseline": [
+        [
+          85,
+          752
+        ],
+        [
+          287,
+          755
+        ],
+        [
+          521,
+          750
+        ],
+        [
+          752,
+          734
+        ],
+        [
+          1207,
+          726
+        ]
+      ],
+      "bbox": [
+        84,
+        663,
+        1123,
+        114
+      ],
+      "confidence": 0.8704
+    },
+    {
+      "index": 19,
+      "image_path": "data/lines/8.jpg/line_019.png",
+      "ocr_text": "على ما ذكر قالالى ونقلت من المأمون كتاب حمل ربيع الابراد للزخنتري مجب حكاية يدل",
+      "baseline": [
+        [
+          78,
+          877
+        ],
+        [
+          422,
+          864
+        ],
+        [
+          893,
+          854
+        ],
+        [
+          1163,
+          831
+        ],
+        [
+          1214,
+          831
+        ]
+      ],
+      "bbox": [
+        75,
+        776,
+        1139,
+        119
+      ],
+      "confidence": 0.9609
+    },
+    {
+      "index": 20,
+      "image_path": "data/lines/8.jpg/line_020.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1128,
+          860
+        ],
+        [
+          1164,
+          860
+        ]
+      ],
+      "bbox": [
+        1128,
+        834,
+        36,
+        36
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 21,
+      "image_path": "data/lines/8.jpg/line_021.png",
+      "ocr_text": "وبحوعوناربح منصافا لونصافا",
+      "baseline": [
+        [
+          738,
+          939
+        ],
+        [
+          1157,
+          939
+        ]
+      ],
+      "bbox": [
+        738,
+        866,
+        419,
+        102
+      ],
+      "confidence": 0.872
+    },
+    {
+      "index": 22,
+      "image_path": "data/lines/8.jpg/line_022.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          567,
+          960
+        ],
+        [
+          644,
+          961
+        ]
+      ],
+      "bbox": [
+        566,
+        905,
+        78,
+        69
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 23,
+      "image_path": "data/lines/8.jpg/line_023.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          345,
+          957
+        ],
+        [
+          515,
+          955
+        ]
+      ],
+      "bbox": [
+        344,
+        896,
+        171,
+        76
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 24,
+      "image_path": "data/lines/8.jpg/line_024.png",
+      "ocr_text": "مرعمل زربعته الى الدار وغربسه بهافلما غرس لم يعيين منضرح لو علني",
+      "baseline": [
+        [
+          493,
+          1048
+        ],
+        [
+          956,
+          1040
+        ],
+        [
+          1199,
+          1050
+        ]
+      ],
+      "bbox": [
+        491,
+        973,
+        708,
+        92
+      ],
+      "confidence": 0.8992
+    },
+    {
+      "index": 25,
+      "image_path": "data/lines/8.jpg/line_025.png",
+      "ocr_text": "قامر نجمال مجامر",
+      "baseline": [
+        [
+          368,
+          1046
+        ],
+        [
+          491,
+          1045
+        ]
+      ],
+      "bbox": [
+        368,
+        996,
+        123,
+        94
+      ],
+      "confidence": 0.9493
+    },
+    {
+      "index": 26,
+      "image_path": "data/lines/8.jpg/line_026.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          83,
+          955
+        ],
+        [
+          261,
+          964
+        ],
+        [
+          330,
+          959
+        ]
+      ],
+      "bbox": [
+        82,
+        889,
+        248,
+        93
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 27,
+      "image_path": "data/lines/8.jpg/line_027.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          78,
+          1070
+        ],
+        [
+          231,
+          1070
+        ]
+      ],
+      "bbox": [
+        78,
+        1015,
+        153,
+        74
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 28,
+      "image_path": "data/lines/8.jpg/line_028.png",
+      "ocr_text": "كيابه المامون الماء التربه قامر الماء ومملت محماد قليله قضن ان تمام",
+      "baseline": [
+        [
+          75,
+          1155
+        ],
+        [
+          737,
+          1137
+        ],
+        [
+          1210,
+          1141
+        ]
+      ],
+      "bbox": [
+        74,
+        1074,
+        1136,
+        101
+      ],
+      "confidence": 0.96
+    },
+    {
+      "index": 29,
+      "image_path": "data/lines/8.jpg/line_029.png",
+      "ocr_text": "يكون على المجواء بجمد شمل فحاد ولم يفزمرادة فعلم",
+      "baseline": [
+        [
+          89,
+          1237
+        ],
+        [
+          380,
+          1244
+        ],
+        [
+          571,
+          1239
+        ],
+        [
+          666,
+          1229
+        ],
+        [
+          925,
+          1227
+        ],
+        [
+          1055,
+          1234
+        ],
+        [
+          1200,
+          1229
+        ]
+      ],
+      "bbox": [
+        89,
+        1168,
+        1111,
+        98
+      ],
+      "confidence": 0.9275
+    },
+    {
+      "index": 30,
+      "image_path": "data/lines/8.jpg/line_030.png",
+      "ocr_text": "ان في الناتفييدك",
+      "baseline": [
+        [
+          925,
+          1326
+        ],
+        [
+          1014,
+          1323
+        ],
+        [
+          1199,
+          1329
+        ]
+      ],
+      "bbox": [
+        924,
+        1263,
+        275,
+        84
+      ],
+      "confidence": 0.9172
+    },
+    {
+      "index": 31,
+      "image_path": "data/lines/8.jpg/line_031.png",
+      "ocr_text": "للمناصبيه ولهذا قالاصححا الفدوحة",
+      "baseline": [
+        [
+          871,
+          1326
+        ],
+        [
+          901,
+          1326
+        ]
+      ],
+      "bbox": [
+        871,
+        1252,
+        30,
+        90
+      ],
+      "confidence": 0.8354
+    },
+    {
+      "index": 32,
+      "image_path": "data/lines/8.jpg/line_032.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          104,
+          1340
+        ],
+        [
+          814,
+          1326
+        ]
+      ],
+      "bbox": [
+        103,
+        1255,
+        711,
+        100
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 33,
+      "image_path": "data/lines/8.jpg/line_033.png",
+      "ocr_text": "ختله فو نكله المياه كما والاهويه والم رض ايا بالجودة واما بالردات",
+      "baseline": [
+        [
+          104,
+          1438
+        ],
+        [
+          195,
+          1438
+        ],
+        [
+          323,
+          1426
+        ],
+        [
+          563,
+          1417
+        ],
+        [
+          1199,
+          1411
+        ]
+      ],
+      "bbox": [
+        102,
+        1348,
+        1097,
+        106
+      ],
+      "confidence": 0.9325
+    },
+    {
+      "index": 34,
+      "image_path": "data/lines/8.jpg/line_034.png",
+      "ocr_text": "فختلو ومذاقه يرو في البرى والجبل بالنببة الى البتيافي",
+      "baseline": [
+        [
+          781,
+          1512
+        ],
+        [
+          1025,
+          1510
+        ],
+        [
+          1196,
+          1499
+        ]
+      ],
+      "bbox": [
+        779,
+        1437,
+        417,
+        97
+      ],
+      "confidence": 0.9487
+    },
+    {
+      "index": 35,
+      "image_path": "data/lines/8.jpg/line_035.png",
+      "ocr_text": "وربما كان هدا اصل وهدا اردياوبالعكي وقدحكي",
+      "baseline": [
+        [
+          1089,
+          1580
+        ],
+        [
+          1201,
+          1577
+        ]
+      ],
+      "bbox": [
+        1089,
+        1524,
+        112,
+        85
+      ],
+      "confidence": 0.9617
+    },
+    {
+      "index": 36,
+      "image_path": "data/lines/8.jpg/line_036.png",
+      "ocr_text": "والاهلي",
+      "baseline": [
+        [
+          69,
+          1540
+        ],
+        [
+          228,
+          1533
+        ],
+        [
+          401,
+          1518
+        ],
+        [
+          562,
+          1519
+        ]
+      ],
+      "bbox": [
+        66,
+        1452,
+        496,
+        106
+      ],
+      "confidence": 0.8952
+    },
+    {
+      "index": 37,
+      "image_path": "data/lines/8.jpg/line_037.png",
+      "ocr_text": "بعنو اصمح المبايع في تاثير",
+      "baseline": [
+        [
+          62,
+          1635
+        ],
+        [
+          343,
+          1618
+        ],
+        [
+          444,
+          1620
+        ],
+        [
+          682,
+          1608
+        ],
+        [
+          1107,
+          1606
+        ]
+      ],
+      "bbox": [
+        60,
+        1535,
+        1047,
+        113
+      ],
+      "confidence": 0.8821
+    },
+    {
+      "index": 38,
+      "image_path": "data/lines/8.jpg/line_038.png",
+      "ocr_text": "والمعندط المكان والزمان ان القصب البالي والفارس",
+      "baseline": [
+        [
+          741,
+          1692
+        ],
+        [
+          950,
+          1691
+        ],
+        [
+          1147,
+          1680
+        ],
+        [
+          1199,
+          1684
+        ]
+      ],
+      "bbox": [
+        738,
+        1623,
+        461,
+        99
+      ],
+      "confidence": 0.9783
+    },
+    {
+      "index": 39,
+      "image_path": "data/lines/8.jpg/line_039.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          673,
+          1712
+        ],
+        [
+          738,
+          1713
+        ]
+      ],
+      "bbox": [
+        672,
+        1694,
+        66,
+        29
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 40,
+      "image_path": "data/lines/8.jpg/line_040.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          48,
+          1708
+        ],
+        [
+          180,
+          1713
+        ],
+        [
+          651,
+          1709
+        ]
+      ],
+      "bbox": [
+        47,
+        1641,
+        604,
+        93
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 41,
+      "image_path": "data/lines/8.jpg/line_041.png",
+      "ocr_text": "وقصيب البيكراغا كان بدوحا من العلرش فان العلامش",
+      "baseline": [
+        [
+          315,
+          1802
+        ],
+        [
+          363,
+          1796
+        ],
+        [
+          616,
+          1794
+        ],
+        [
+          851,
+          1776
+        ],
+        [
+          1206,
+          1776
+        ]
+      ],
+      "bbox": [
+        313,
+        1712,
+        893,
+        100
+      ],
+      "confidence": 0.9743
+    },
+    {
+      "index": 42,
+      "image_path": "data/lines/8.jpg/line_042.png",
+      "ocr_text": "ثم واجبانة العز اطال وكان فلما",
+      "baseline": [
+        [
+          41,
+          1811
+        ],
+        [
+          283,
+          1808
+        ]
+      ],
+      "bbox": [
+        40,
+        1743,
+        243,
+        83
+      ],
+      "confidence": 0.9372
+    },
+    {
+      "index": 43,
+      "image_path": "data/lines/8.jpg/line_043.png",
+      "ocr_text": "حقيفا ارتفع في الطواء صارله",
+      "baseline": [
+        [
+          48,
+          1888
+        ],
+        [
+          333,
+          1896
+        ],
+        [
+          450,
+          1890
+        ],
+        [
+          592,
+          1875
+        ],
+        [
+          1213,
+          1872
+        ]
+      ],
+      "bbox": [
+        47,
+        1806,
+        1166,
+        114
+      ],
+      "confidence": 0.8933
+    },
+    {
+      "index": 44,
+      "image_path": "data/lines/8.jpg/line_044.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1037,
+          1897
+        ],
+        [
+          1161,
+          1905
+        ]
+      ],
+      "bbox": [
+        1036,
+        1873,
+        125,
+        48
+      ],
+      "confidence": 0.0
+    }
+  ]
+}

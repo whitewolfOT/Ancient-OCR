@@ -1,0 +1,1376 @@
+{
+  "page": "2.jpg",
+  "original_size": [
+    1306,
+    1926
+  ],
+  "seg_source": "kraken",
+  "lines": [
+    {
+      "index": 0,
+      "image_path": "data/lines/2.jpg/line_000.png",
+      "ocr_text": "من باطين وجه الارض الارض صلعدا من الى فوق الصراء الى نابته حربا من البخرنه الذي التي اخنتها في",
+      "baseline": [
+        [
+          331,
+          84
+        ],
+        [
+          670,
+          79
+        ],
+        [
+          1265,
+          93
+        ]
+      ],
+      "bbox": [
+        330,
+        16,
+        935,
+        102
+      ],
+      "confidence": 0.9635
+    },
+    {
+      "index": 1,
+      "image_path": "data/lines/2.jpg/line_001.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          134,
+          100
+        ],
+        [
+          239,
+          93
+        ]
+      ],
+      "bbox": [
+        130,
+        49,
+        109,
+        62
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 2,
+      "image_path": "data/lines/2.jpg/line_002.png",
+      "ocr_text": "لجوارت التي اكتبتيمما من فوق بالنصار فاذا اسحن",
+      "baseline": [
+        [
+          79,
+          190
+        ],
+        [
+          175,
+          185
+        ],
+        [
+          204,
+          177
+        ],
+        [
+          205,
+          173
+        ]
+      ],
+      "bbox": [
+        74,
+        110,
+        132,
+        98
+      ],
+      "confidence": 0.9243
+    },
+    {
+      "index": 3,
+      "image_path": "data/lines/2.jpg/line_003.png",
+      "ocr_text": "وحدها بطيعه ليس نخصه لكما",
+      "baseline": [
+        [
+          1223,
+          159
+        ],
+        [
+          1274,
+          156
+        ]
+      ],
+      "bbox": [
+        1219,
+        98,
+        55,
+        71
+      ],
+      "confidence": 0.9158
+    },
+    {
+      "index": 4,
+      "image_path": "data/lines/2.jpg/line_004.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1005,
+          172
+        ],
+        [
+          1187,
+          172
+        ],
+        [
+          1217,
+          166
+        ]
+      ],
+      "bbox": [
+        1005,
+        117,
+        212,
+        71
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 5,
+      "image_path": "data/lines/2.jpg/line_005.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          205,
+          173
+        ],
+        [
+          493,
+          164
+        ],
+        [
+          973,
+          165
+        ]
+      ],
+      "bbox": [
+        204,
+        101,
+        769,
+        95
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 6,
+      "image_path": "data/lines/2.jpg/line_006.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          584,
+          261
+        ],
+        [
+          579,
+          260
+        ],
+        [
+          584,
+          256
+        ]
+      ],
+      "bbox": [
+        573,
+        255,
+        26,
+        7
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 7,
+      "image_path": "data/lines/2.jpg/line_007.png",
+      "ocr_text": "خرنة التميس الى المحواءيرنة",
+      "baseline": [
+        [
+          624,
+          268
+        ],
+        [
+          646,
+          270
+        ],
+        [
+          775,
+          258
+        ],
+        [
+          1185,
+          257
+        ]
+      ],
+      "bbox": [
+        624,
+        194,
+        561,
+        90
+      ],
+      "confidence": 0.8724
+    },
+    {
+      "index": 8,
+      "image_path": "data/lines/2.jpg/line_008.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          73,
+          264
+        ],
+        [
+          378,
+          256
+        ],
+        [
+          554,
+          261
+        ],
+        [
+          584,
+          256
+        ]
+      ],
+      "bbox": [
+        72,
+        191,
+        512,
+        92
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 9,
+      "image_path": "data/lines/2.jpg/line_009.png",
+      "ocr_text": "شديدة جدب منه ما خرج قيطبلع النيات ثم من ياطين الارض الى مناخرها",
+      "baseline": [
+        [
+          70,
+          344
+        ],
+        [
+          296,
+          341
+        ],
+        [
+          750,
+          345
+        ],
+        [
+          1271,
+          333
+        ]
+      ],
+      "bbox": [
+        69,
+        278,
+        1202,
+        95
+      ],
+      "confidence": 0.9482
+    },
+    {
+      "index": 10,
+      "image_path": "data/lines/2.jpg/line_010.png",
+      "ocr_text": "فبلغ نييا فييح نلك الطالع بباتا نموويزيد بالمادة قمده",
+      "baseline": [
+        [
+          869,
+          420
+        ],
+        [
+          1265,
+          421
+        ]
+      ],
+      "bbox": [
+        868,
+        360,
+        397,
+        95
+      ],
+      "confidence": 0.8782
+    },
+    {
+      "index": 11,
+      "image_path": "data/lines/2.jpg/line_011.png",
+      "ocr_text": "له البلكي",
+      "baseline": [
+        [
+          1182,
+          520
+        ],
+        [
+          1251,
+          517
+        ]
+      ],
+      "bbox": [
+        1180,
+        490,
+        71,
+        70
+      ],
+      "confidence": 0.91
+    },
+    {
+      "index": 12,
+      "image_path": "data/lines/2.jpg/line_012.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          90,
+          438
+        ],
+        [
+          342,
+          425
+        ],
+        [
+          694,
+          431
+        ],
+        [
+          949,
+          441
+        ]
+      ],
+      "bbox": [
+        90,
+        362,
+        859,
+        100
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 13,
+      "image_path": "data/lines/2.jpg/line_013.png",
+      "ocr_text": "وح من جسمه",
+      "baseline": [
+        [
+          456,
+          516
+        ],
+        [
+          611,
+          518
+        ]
+      ],
+      "bbox": [
+        454,
+        478,
+        157,
+        70
+      ],
+      "confidence": 0.9583
+    },
+    {
+      "index": 14,
+      "image_path": "data/lines/2.jpg/line_014.png",
+      "ocr_text": "الماء وما لطيف اله جزاء فلزيد وبيح",
+      "baseline": [
+        [
+          551,
+          539
+        ],
+        [
+          639,
+          543
+        ],
+        [
+          888,
+          541
+        ],
+        [
+          976,
+          539
+        ],
+        [
+          1057,
+          529
+        ],
+        [
+          1130,
+          530
+        ]
+      ],
+      "bbox": [
+        551,
+        469,
+        579,
+        93
+      ],
+      "confidence": 0.9815
+    },
+    {
+      "index": 15,
+      "image_path": "data/lines/2.jpg/line_015.png",
+      "ocr_text": "عتدا حلى",
+      "baseline": [
+        [
+          927,
+          634
+        ],
+        [
+          1253,
+          634
+        ]
+      ],
+      "bbox": [
+        927,
+        569,
+        326,
+        93
+      ],
+      "confidence": 0.9615
+    },
+    {
+      "index": 16,
+      "image_path": "data/lines/2.jpg/line_016.png",
+      "ocr_text": "الارضى بدلك تلك",
+      "baseline": [
+        [
+          255,
+          525
+        ],
+        [
+          360,
+          520
+        ]
+      ],
+      "bbox": [
+        252,
+        457,
+        108,
+        78
+      ],
+      "confidence": 0.993
+    },
+    {
+      "index": 17,
+      "image_path": "data/lines/2.jpg/line_017.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          107,
+          526
+        ],
+        [
+          240,
+          526
+        ]
+      ],
+      "bbox": [
+        107,
+        460,
+        133,
+        84
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 18,
+      "image_path": "data/lines/2.jpg/line_018.png",
+      "ocr_text": "الزيادة والا ونقلته من كتاب المبيالك والمالك مي عيبد",
+      "baseline": [
+        [
+          135,
+          635
+        ],
+        [
+          178,
+          630
+        ],
+        [
+          554,
+          624
+        ],
+        [
+          888,
+          624
+        ]
+      ],
+      "bbox": [
+        134,
+        556,
+        754,
+        91
+      ],
+      "confidence": 0.9495
+    },
+    {
+      "index": 19,
+      "image_path": "data/lines/2.jpg/line_019.png",
+      "ocr_text": "ان اس مجل",
+      "baseline": [
+        [
+          720,
+          738
+        ],
+        [
+          1247,
+          734
+        ]
+      ],
+      "bbox": [
+        719,
+        662,
+        528,
+        94
+      ],
+      "confidence": 0.9429
+    },
+    {
+      "index": 20,
+      "image_path": "data/lines/2.jpg/line_020.png",
+      "ocr_text": "قراين عباسي ابن العاشم عن ابيه انه يصديومابنا",
+      "baseline": [
+        [
+          540,
+          712
+        ],
+        [
+          636,
+          709
+        ]
+      ],
+      "bbox": [
+        537,
+        652,
+        99,
+        110
+      ],
+      "confidence": 0.9556
+    },
+    {
+      "index": 21,
+      "image_path": "data/lines/2.jpg/line_021.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          67,
+          717
+        ],
+        [
+          468,
+          721
+        ]
+      ],
+      "bbox": [
+        66,
+        662,
+        402,
+        79
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 22,
+      "image_path": "data/lines/2.jpg/line_022.png",
+      "ocr_text": "حبة صنعاء فاجامه مطر فمال الى احبية اعراب مكرت عيدهم كنكم يوما وليلة",
+      "baseline": [
+        [
+          65,
+          815
+        ],
+        [
+          901,
+          830
+        ],
+        [
+          1200,
+          820
+        ],
+        [
+          1252,
+          813
+        ]
+      ],
+      "bbox": [
+        64,
+        744,
+        1188,
+        107
+      ],
+      "confidence": 0.9291
+    },
+    {
+      "index": 23,
+      "image_path": "data/lines/2.jpg/line_023.png",
+      "ocr_text": "والغيم مبح لا يج فلما احبح قال لقد انزل الله الليلة خلى افقام رب",
+      "baseline": [
+        [
+          961,
+          919
+        ],
+        [
+          1226,
+          911
+        ]
+      ],
+      "bbox": [
+        960,
+        856,
+        266,
+        80
+      ],
+      "confidence": 0.9777
+    },
+    {
+      "index": 24,
+      "image_path": "data/lines/2.jpg/line_024.png",
+      "ocr_text": "كان المطر فلين",
+      "baseline": [
+        [
+          970,
+          938
+        ],
+        [
+          1186,
+          939
+        ]
+      ],
+      "bbox": [
+        969,
+        919,
+        217,
+        50
+      ],
+      "confidence": 0.9452
+    },
+    {
+      "index": 25,
+      "image_path": "data/lines/2.jpg/line_025.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          350,
+          934
+        ],
+        [
+          471,
+          929
+        ],
+        [
+          905,
+          931
+        ]
+      ],
+      "bbox": [
+        348,
+        862,
+        557,
+        98
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 26,
+      "image_path": "data/lines/2.jpg/line_026.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          57,
+          920
+        ],
+        [
+          297,
+          924
+        ]
+      ],
+      "bbox": [
+        56,
+        861,
+        241,
+        91
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 27,
+      "image_path": "data/lines/2.jpg/line_027.png",
+      "ocr_text": "المنزل الى كينسائلر اربع حبعيات نصيبه من بيدفقا",
+      "baseline": [
+        [
+          61,
+          1027
+        ],
+        [
+          529,
+          1029
+        ],
+        [
+          940,
+          1042
+        ],
+        [
+          1241,
+          1034
+        ]
+      ],
+      "bbox": [
+        59,
+        956,
+        1182,
+        103
+      ],
+      "confidence": 0.9213
+    },
+    {
+      "index": 28,
+      "image_path": "data/lines/2.jpg/line_028.png",
+      "ocr_text": "ما انزل الله خيرا الليله ثم ليلتاخر مكذلك وليلة اخرى فلما كان في اليوم",
+      "baseline": [
+        [
+          62,
+          1145
+        ],
+        [
+          199,
+          1136
+        ],
+        [
+          376,
+          1133
+        ],
+        [
+          778,
+          1139
+        ],
+        [
+          1248,
+          1129
+        ]
+      ],
+      "bbox": [
+        61,
+        1053,
+        1187,
+        114
+      ],
+      "confidence": 0.9469
+    },
+    {
+      "index": 29,
+      "image_path": "data/lines/2.jpg/line_029.png",
+      "ocr_text": "الثالث قالرنع قد انزل الله خكر في هذه الليلة فيسئله عن ذلك فاتاه",
+      "baseline": [
+        [
+          674,
+          1240
+        ],
+        [
+          834,
+          1234
+        ],
+        [
+          1244,
+          1234
+        ]
+      ],
+      "bbox": [
+        673,
+        1165,
+        571,
+        91
+      ],
+      "confidence": 0.9608
+    },
+    {
+      "index": 30,
+      "image_path": "data/lines/2.jpg/line_030.png",
+      "ocr_text": "من جوق حب",
+      "baseline": [
+        [
+          968,
+          1342
+        ],
+        [
+          1188,
+          1346
+        ]
+      ],
+      "bbox": [
+        967,
+        1280,
+        221,
+        81
+      ],
+      "confidence": 0.9913
+    },
+    {
+      "index": 31,
+      "image_path": "data/lines/2.jpg/line_031.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          50,
+          1227
+        ],
+        [
+          640,
+          1229
+        ]
+      ],
+      "bbox": [
+        49,
+        1166,
+        591,
+        84
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 32,
+      "image_path": "data/lines/2.jpg/line_032.png",
+      "ocr_text": "يكف النرورتنا ولها من ذلك الكببنا ومحال ان الحبالبقل",
+      "baseline": [
+        [
+          43,
+          1346
+        ],
+        [
+          183,
+          1339
+        ],
+        [
+          429,
+          1340
+        ],
+        [
+          604,
+          1335
+        ],
+        [
+          833,
+          1339
+        ]
+      ],
+      "bbox": [
+        42,
+        1256,
+        791,
+        102
+      ],
+      "confidence": 0.935
+    },
+    {
+      "index": 33,
+      "image_path": "data/lines/2.jpg/line_033.png",
+      "ocr_text": "والعنيب والكلة انا ينزل من السماء ينبته الخالق كما بتيأ وهذا القول",
+      "baseline": [
+        [
+          52,
+          1454
+        ],
+        [
+          402,
+          1454
+        ],
+        [
+          549,
+          1445
+        ],
+        [
+          988,
+          1444
+        ],
+        [
+          1225,
+          1432
+        ]
+      ],
+      "bbox": [
+        50,
+        1365,
+        1175,
+        109
+      ],
+      "confidence": 0.9501
+    },
+    {
+      "index": 34,
+      "image_path": "data/lines/2.jpg/line_034.png",
+      "ocr_text": "المحكم اشبله بالنقول وانمالسفنان في المعقول لان يجودة ...ه",
+      "baseline": [
+        [
+          359,
+          1553
+        ],
+        [
+          584,
+          1538
+        ],
+        [
+          1191,
+          1538
+        ]
+      ],
+      "bbox": [
+        358,
+        1463,
+        833,
+        113
+      ],
+      "confidence": 0.9152
+    },
+    {
+      "index": 35,
+      "image_path": "data/lines/2.jpg/line_035.png",
+      "ocr_text": "وصسا قال ابن وحتتين واصل كون الاكوان في النبات هو",
+      "baseline": [
+        [
+          1189,
+          1608
+        ],
+        [
+          1222,
+          1609
+        ]
+      ],
+      "bbox": [
+        1188,
+        1577,
+        34,
+        44
+      ],
+      "confidence": 0.9562
+    },
+    {
+      "index": 36,
+      "image_path": "data/lines/2.jpg/line_036.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1089,
+          1656
+        ],
+        [
+          1228,
+          1653
+        ]
+      ],
+      "bbox": [
+        1088,
+        1614,
+        140,
+        58
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 37,
+      "image_path": "data/lines/2.jpg/line_037.png",
+      "ocr_text": "اييخان البتمي له ثم طلوع القمر ويتعبر الاولوان ويبدل فيه فان",
+      "baseline": [
+        [
+          1222,
+          1693
+        ],
+        [
+          1248,
+          1695
+        ]
+      ],
+      "bbox": [
+        1220,
+        1657,
+        29,
+        60
+      ],
+      "confidence": 0.9534
+    },
+    {
+      "index": 38,
+      "image_path": "data/lines/2.jpg/line_038.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1187,
+          1741
+        ],
+        [
+          1196,
+          1741
+        ]
+      ],
+      "bbox": [
+        1187,
+        1718,
+        9,
+        35
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 39,
+      "image_path": "data/lines/2.jpg/line_039.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          763,
+          1655
+        ],
+        [
+          1039,
+          1660
+        ]
+      ],
+      "bbox": [
+        762,
+        1588,
+        277,
+        95
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 40,
+      "image_path": "data/lines/2.jpg/line_040.png",
+      "ocr_text": "بلجا ثم",
+      "baseline": [
+        [
+          1020,
+          1747
+        ],
+        [
+          1072,
+          1745
+        ]
+      ],
+      "bbox": [
+        1016,
+        1682,
+        56,
+        110
+      ],
+      "confidence": 0.9101
+    },
+    {
+      "index": 41,
+      "image_path": "data/lines/2.jpg/line_041.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          890,
+          1747
+        ],
+        [
+          901,
+          1748
+        ]
+      ],
+      "bbox": [
+        889,
+        1706,
+        14,
+        60
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 42,
+      "image_path": "data/lines/2.jpg/line_042.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1198,
+          1859
+        ],
+        [
+          1213,
+          1857
+        ]
+      ],
+      "bbox": [
+        1196,
+        1840,
+        20,
+        44
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 43,
+      "image_path": "data/lines/2.jpg/line_043.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          1107,
+          1768
+        ],
+        [
+          1196,
+          1765
+        ]
+      ],
+      "bbox": [
+        1105,
+        1723,
+        91,
+        61
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 44,
+      "image_path": "data/lines/2.jpg/line_044.png",
+      "ocr_text": "عرة",
+      "baseline": [
+        [
+          1172,
+          1855
+        ],
+        [
+          1191,
+          1855
+        ]
+      ],
+      "bbox": [
+        1172,
+        1806,
+        19,
+        61
+      ],
+      "confidence": 0.8009
+    },
+    {
+      "index": 45,
+      "image_path": "data/lines/2.jpg/line_045.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          977,
+          1768
+        ],
+        [
+          1025,
+          1767
+        ]
+      ],
+      "bbox": [
+        976,
+        1738,
+        49,
+        45
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 46,
+      "image_path": "data/lines/2.jpg/line_046.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          839,
+          1745
+        ],
+        [
+          871,
+          1746
+        ]
+      ],
+      "bbox": [
+        838,
+        1726,
+        33,
+        32
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 47,
+      "image_path": "data/lines/2.jpg/line_047.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          666,
+          1655
+        ],
+        [
+          730,
+          1654
+        ]
+      ],
+      "bbox": [
+        665,
+        1607,
+        65,
+        71
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 48,
+      "image_path": "data/lines/2.jpg/line_048.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          59,
+          1547
+        ],
+        [
+          261,
+          1554
+        ]
+      ],
+      "bbox": [
+        58,
+        1498,
+        203,
+        75
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 49,
+      "image_path": "data/lines/2.jpg/line_049.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          82,
+          1667
+        ],
+        [
+          627,
+          1655
+        ]
+      ],
+      "bbox": [
+        80,
+        1577,
+        547,
+        114
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 50,
+      "image_path": "data/lines/2.jpg/line_050.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          553,
+          1748
+        ],
+        [
+          664,
+          1741
+        ],
+        [
+          797,
+          1743
+        ]
+      ],
+      "bbox": [
+        552,
+        1692,
+        245,
+        74
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 51,
+      "image_path": "data/lines/2.jpg/line_051.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          480,
+          1755
+        ],
+        [
+          504,
+          1754
+        ]
+      ],
+      "bbox": [
+        477,
+        1684,
+        27,
+        80
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 52,
+      "image_path": "data/lines/2.jpg/line_052.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          83,
+          1761
+        ],
+        [
+          407,
+          1761
+        ]
+      ],
+      "bbox": [
+        83,
+        1693,
+        324,
+        91
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 53,
+      "image_path": "data/lines/2.jpg/line_053.png",
+      "ocr_text": "النخل تبدوا وله بيضاء جفرتي لم يصلير اخضر بكبر فيلنقل",
+      "baseline": [
+        [
+          460,
+          1851
+        ],
+        [
+          623,
+          1845
+        ],
+        [
+          685,
+          1853
+        ],
+        [
+          1035,
+          1861
+        ]
+      ],
+      "bbox": [
+        459,
+        1795,
+        576,
+        99
+      ],
+      "confidence": 0.9543
+    },
+    {
+      "index": 54,
+      "image_path": "data/lines/2.jpg/line_054.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          52,
+          1841
+        ],
+        [
+          327,
+          1848
+        ]
+      ],
+      "bbox": [
+        52,
+        1796,
+        275,
+        87
+      ],
+      "confidence": 0.0
+    }
+  ]
+}

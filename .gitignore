@@ -31,3 +31,7 @@ data/training_pairs/
 .DS_Store
 Thumbs.db
 .claude/
+
+# Line crops (images large, JSONs committed)
+data/lines/**/*.png
+data/corrections/

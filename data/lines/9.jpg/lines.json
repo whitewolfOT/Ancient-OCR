@@ -1,0 +1,1230 @@
+{
+  "page": "9.jpg",
+  "original_size": [
+    1350,
+    2020
+  ],
+  "seg_source": "kraken",
+  "lines": [
+    {
+      "index": 0,
+      "image_path": "data/lines/9.jpg/line_000.png",
+      "ocr_text": "ثم الى نقبيه من الغدا ما قوى بهوصله حتى صارق",
+      "baseline": [
+        [
+          1070,
+          138
+        ],
+        [
+          1220,
+          139
+        ]
+      ],
+      "bbox": [
+        1069,
+        76,
+        151,
+        88
+      ],
+      "confidence": 0.9538
+    },
+    {
+      "index": 1,
+      "image_path": "data/lines/9.jpg/line_001.png",
+      "ocr_text": "كعاب يتحد لما",
+      "baseline": [
+        [
+          963,
+          149
+        ],
+        [
+          1017,
+          148
+        ]
+      ],
+      "bbox": [
+        961,
+        74,
+        56,
+        92
+      ],
+      "confidence": 0.922
+    },
+    {
+      "index": 2,
+      "image_path": "data/lines/9.jpg/line_002.png",
+      "ocr_text": "صليايا باله ثم",
+      "baseline": [
+        [
+          76,
+          166
+        ],
+        [
+          399,
+          160
+        ],
+        [
+          567,
+          150
+        ],
+        [
+          847,
+          147
+        ],
+        [
+          922,
+          141
+        ]
+      ],
+      "bbox": [
+        74,
+        86,
+        848,
+        96
+      ],
+      "confidence": 0.9079
+    },
+    {
+      "index": 3,
+      "image_path": "data/lines/9.jpg/line_003.png",
+      "ocr_text": "ابتمنث قوته بقدر المكان الذو بعو فيه ازدادت",
+      "baseline": [
+        [
+          831,
+          227
+        ],
+        [
+          995,
+          231
+        ],
+        [
+          1216,
+          224
+        ]
+      ],
+      "bbox": [
+        829,
+        160,
+        387,
+        91
+      ],
+      "confidence": 0.942
+    },
+    {
+      "index": 4,
+      "image_path": "data/lines/9.jpg/line_004.png",
+      "ocr_text": "صلابته وغلنا",
+      "baseline": [
+        [
+          117,
+          242
+        ],
+        [
+          304,
+          250
+        ],
+        [
+          626,
+          243
+        ],
+        [
+          803,
+          246
+        ]
+      ],
+      "bbox": [
+        116,
+        180,
+        687,
+        88
+      ],
+      "confidence": 0.9919
+    },
+    {
+      "index": 5,
+      "image_path": "data/lines/9.jpg/line_005.png",
+      "ocr_text": "قويا فصار فارسيا وقدنر بعض القصيب الغادس",
+      "baseline": [
+        [
+          70,
+          329
+        ],
+        [
+          343,
+          322
+        ],
+        [
+          710,
+          323
+        ],
+        [
+          1009,
+          310
+        ],
+        [
+          1211,
+          308
+        ]
+      ],
+      "bbox": [
+        69,
+        246,
+        1142,
+        99
+      ],
+      "confidence": 0.9713
+    },
+    {
+      "index": 6,
+      "image_path": "data/lines/9.jpg/line_006.png",
+      "ocr_text": "العندي وهو القنافانه لما قوية ادثن",
+      "baseline": [
+        [
+          928,
+          402
+        ],
+        [
+          1011,
+          395
+        ],
+        [
+          1217,
+          391
+        ]
+      ],
+      "bbox": [
+        926,
+        340,
+        291,
+        80
+      ],
+      "confidence": 0.8731
+    },
+    {
+      "index": 7,
+      "image_path": "data/lines/9.jpg/line_007.png",
+      "ocr_text": "وكثر ضعينا المرقبل وبعصه العذا ففلظ وكذلك",
+      "baseline": [
+        [
+          81,
+          442
+        ],
+        [
+          220,
+          432
+        ],
+        [
+          899,
+          411
+        ]
+      ],
+      "bbox": [
+        79,
+        336,
+        820,
+        122
+      ],
+      "confidence": 0.9526
+    },
+    {
+      "index": 8,
+      "image_path": "data/lines/9.jpg/line_008.png",
+      "ocr_text": "فيه من التحيس لان واستدت اله قوته من استمداد البيس المبني",
+      "baseline": [
+        [
+          84,
+          533
+        ],
+        [
+          260,
+          524
+        ],
+        [
+          818,
+          510
+        ],
+        [
+          1027,
+          492
+        ],
+        [
+          1166,
+          491
+        ]
+      ],
+      "bbox": [
+        81,
+        430,
+        1085,
+        126
+      ],
+      "confidence": 0.9629
+    },
+    {
+      "index": 9,
+      "image_path": "data/lines/9.jpg/line_009.png",
+      "ocr_text": "البتمييق ذلك قاليم انسيد حراواعظر بسلطات",
+      "baseline": [
+        [
+          799,
+          607
+        ],
+        [
+          846,
+          601
+        ],
+        [
+          1027,
+          597
+        ],
+        [
+          1195,
+          598
+        ]
+      ],
+      "bbox": [
+        797,
+        537,
+        398,
+        83
+      ],
+      "confidence": 0.8881
+    },
+    {
+      "index": 10,
+      "image_path": "data/lines/9.jpg/line_010.png",
+      "ocr_text": "منها في غير لديوها منه فكذلك",
+      "baseline": [
+        [
+          68,
+          637
+        ],
+        [
+          362,
+          628
+        ],
+        [
+          490,
+          618
+        ],
+        [
+          776,
+          612
+        ]
+      ],
+      "bbox": [
+        66,
+        546,
+        710,
+        109
+      ],
+      "confidence": 0.9697
+    },
+    {
+      "index": 11,
+      "image_path": "data/lines/9.jpg/line_011.png",
+      "ocr_text": "حتى عضمت اشجاده وكان حنها بثم البنا",
+      "baseline": [
+        [
+          636,
+          707
+        ],
+        [
+          888,
+          694
+        ],
+        [
+          1016,
+          699
+        ],
+        [
+          1197,
+          696
+        ]
+      ],
+      "bbox": [
+        634,
+        623,
+        563,
+        103
+      ],
+      "confidence": 0.909
+    },
+    {
+      "index": 12,
+      "image_path": "data/lines/9.jpg/line_012.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          477,
+          720
+        ],
+        [
+          599,
+          712
+        ]
+      ],
+      "bbox": [
+        473,
+        674,
+        126,
+        59
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 13,
+      "image_path": "data/lines/9.jpg/line_013.png",
+      "ocr_text": "ان يعظ النشيح منه على حال عضيتمتهمن الطبول والفلق",
+      "baseline": [
+        [
+          555,
+          797
+        ],
+        [
+          695,
+          799
+        ],
+        [
+          964,
+          791
+        ],
+        [
+          1052,
+          782
+        ],
+        [
+          1196,
+          786
+        ]
+      ],
+      "bbox": [
+        554,
+        723,
+        642,
+        109
+      ],
+      "confidence": 0.9268
+    },
+    {
+      "index": 14,
+      "image_path": "data/lines/9.jpg/line_014.png",
+      "ocr_text": "وانا",
+      "baseline": [
+        [
+          1189,
+          875
+        ],
+        [
+          1206,
+          875
+        ]
+      ],
+      "bbox": [
+        1189,
+        846,
+        17,
+        38
+      ],
+      "confidence": 0.8501
+    },
+    {
+      "index": 15,
+      "image_path": "data/lines/9.jpg/line_015.png",
+      "ocr_text": "الييكر",
+      "baseline": [
+        [
+          1135,
+          906
+        ],
+        [
+          1172,
+          904
+        ]
+      ],
+      "bbox": [
+        1133,
+        852,
+        39,
+        62
+      ],
+      "confidence": 0.8692
+    },
+    {
+      "index": 16,
+      "image_path": "data/lines/9.jpg/line_016.png",
+      "ocr_text": "ورقة بالاخرى القعب",
+      "baseline": [
+        [
+          943,
+          884
+        ],
+        [
+          1053,
+          882
+        ]
+      ],
+      "bbox": [
+        942,
+        837,
+        111,
+        61
+      ],
+      "confidence": 0.9854
+    },
+    {
+      "index": 17,
+      "image_path": "data/lines/9.jpg/line_017.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          544,
+          884
+        ],
+        [
+          582,
+          884
+        ]
+      ],
+      "bbox": [
+        544,
+        852,
+        38,
+        43
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 18,
+      "image_path": "data/lines/9.jpg/line_018.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          479,
+          793
+        ],
+        [
+          530,
+          793
+        ]
+      ],
+      "bbox": [
+        479,
+        755,
+        51,
+        51
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 19,
+      "image_path": "data/lines/9.jpg/line_019.png",
+      "ocr_text": "الرطب العكر",
+      "baseline": [
+        [
+          771,
+          901
+        ],
+        [
+          1035,
+          909
+        ]
+      ],
+      "bbox": [
+        770,
+        855,
+        265,
+        67
+      ],
+      "confidence": 0.9923
+    },
+    {
+      "index": 20,
+      "image_path": "data/lines/9.jpg/line_020.png",
+      "ocr_text": "قعب من الارض",
+      "baseline": [
+        [
+          790,
+          992
+        ],
+        [
+          1208,
+          995
+        ]
+      ],
+      "bbox": [
+        789,
+        938,
+        419,
+        78
+      ],
+      "confidence": 0.9755
+    },
+    {
+      "index": 21,
+      "image_path": "data/lines/9.jpg/line_021.png",
+      "ocr_text": "هو فان ش لما طبلع",
+      "baseline": [
+        [
+          493,
+          988
+        ],
+        [
+          736,
+          986
+        ]
+      ],
+      "bbox": [
+        491,
+        915,
+        245,
+        93
+      ],
+      "confidence": 0.9655
+    },
+    {
+      "index": 22,
+      "image_path": "data/lines/9.jpg/line_022.png",
+      "ocr_text": "وانه يكون",
+      "baseline": [
+        [
+          69,
+          737
+        ],
+        [
+          440,
+          727
+        ]
+      ],
+      "bbox": [
+        67,
+        655,
+        373,
+        103
+      ],
+      "confidence": 0.9993
+    },
+    {
+      "index": 23,
+      "image_path": "data/lines/9.jpg/line_023.png",
+      "ocr_text": "حتى الرجل بفكرش منها وييعطفي",
+      "baseline": [
+        [
+          71,
+          823
+        ],
+        [
+          196,
+          818
+        ],
+        [
+          473,
+          820
+        ]
+      ],
+      "bbox": [
+        70,
+        753,
+        403,
+        93
+      ],
+      "confidence": 0.8927
+    },
+    {
+      "index": 24,
+      "image_path": "data/lines/9.jpg/line_024.png",
+      "ocr_text": "الذي",
+      "baseline": [
+        [
+          56,
+          930
+        ],
+        [
+          215,
+          914
+        ],
+        [
+          359,
+          911
+        ]
+      ],
+      "bbox": [
+        51,
+        845,
+        308,
+        104
+      ],
+      "confidence": 0.9981
+    },
+    {
+      "index": 25,
+      "image_path": "data/lines/9.jpg/line_025.png",
+      "ocr_text": "كان الى",
+      "baseline": [
+        [
+          249,
+          993
+        ],
+        [
+          402,
+          997
+        ]
+      ],
+      "bbox": [
+        248,
+        920,
+        154,
+        111
+      ],
+      "confidence": 0.9989
+    },
+    {
+      "index": 26,
+      "image_path": "data/lines/9.jpg/line_026.png",
+      "ocr_text": "حلوتم من",
+      "baseline": [
+        [
+          62,
+          1015
+        ],
+        [
+          215,
+          1014
+        ]
+      ],
+      "bbox": [
+        61,
+        950,
+        154,
+        92
+      ],
+      "confidence": 0.9931
+    },
+    {
+      "index": 27,
+      "image_path": "data/lines/9.jpg/line_027.png",
+      "ocr_text": "وهو رطب وكان طعمه ابتتمد فلم نعيي عليه العداعلي قلد",
+      "baseline": [
+        [
+          77,
+          1115
+        ],
+        [
+          488,
+          1086
+        ],
+        [
+          623,
+          1090
+        ],
+        [
+          749,
+          1082
+        ],
+        [
+          1141,
+          1093
+        ]
+      ],
+      "bbox": [
+        75,
+        1012,
+        1066,
+        118
+      ],
+      "confidence": 0.918
+    },
+    {
+      "index": 28,
+      "image_path": "data/lines/9.jpg/line_028.png",
+      "ocr_text": "طبيعته في معدن الرطيوبة يغرط وله البيب فتذجب",
+      "baseline": [
+        [
+          368,
+          1186
+        ],
+        [
+          432,
+          1182
+        ],
+        [
+          481,
+          1187
+        ],
+        [
+          1220,
+          1185
+        ]
+      ],
+      "bbox": [
+        367,
+        1118,
+        853,
+        99
+      ],
+      "confidence": 0.9395
+    },
+    {
+      "index": 29,
+      "image_path": "data/lines/9.jpg/line_029.png",
+      "ocr_text": "رطوبته فيصير كالبابلي قبقى نذكر",
+      "baseline": [
+        [
+          637,
+          1283
+        ],
+        [
+          946,
+          1280
+        ],
+        [
+          1209,
+          1286
+        ]
+      ],
+      "bbox": [
+        637,
+        1209,
+        572,
+        97
+      ],
+      "confidence": 0.9461
+    },
+    {
+      "index": 30,
+      "image_path": "data/lines/9.jpg/line_030.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          76,
+          1187
+        ],
+        [
+          334,
+          1187
+        ]
+      ],
+      "bbox": [
+        76,
+        1134,
+        258,
+        79
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 31,
+      "image_path": "data/lines/9.jpg/line_031.png",
+      "ocr_text": "والفارس عند رطيا رباب للعمري الفلاحة",
+      "baseline": [
+        [
+          78,
+          1268
+        ],
+        [
+          566,
+          1272
+        ]
+      ],
+      "bbox": [
+        77,
+        1203,
+        489,
+        105
+      ],
+      "confidence": 0.9573
+    },
+    {
+      "index": 32,
+      "image_path": "data/lines/9.jpg/line_032.png",
+      "ocr_text": "فحافدوح هذا النيات المخما في وابباته انقال كلهم النبيات ذكرنا الاني ان",
+      "baseline": [
+        [
+          105,
+          1380
+        ],
+        [
+          206,
+          1370
+        ],
+        [
+          350,
+          1369
+        ],
+        [
+          523,
+          1379
+        ],
+        [
+          1057,
+          1384
+        ],
+        [
+          1216,
+          1391
+        ]
+      ],
+      "bbox": [
+        104,
+        1306,
+        1112,
+        108
+      ],
+      "confidence": 0.93
+    },
+    {
+      "index": 33,
+      "image_path": "data/lines/9.jpg/line_033.png",
+      "ocr_text": "ببساء الله توجوحي عن طبعة اكتبه",
+      "baseline": [
+        [
+          804,
+          1494
+        ],
+        [
+          1220,
+          1492
+        ]
+      ],
+      "bbox": [
+        803,
+        1409,
+        417,
+        101
+      ],
+      "confidence": 0.8983
+    },
+    {
+      "index": 34,
+      "image_path": "data/lines/9.jpg/line_034.png",
+      "ocr_text": "منايت",
+      "baseline": [
+        [
+          1086,
+          1590
+        ],
+        [
+          1157,
+          1591
+        ],
+        [
+          1215,
+          1599
+        ]
+      ],
+      "bbox": [
+        1084,
+        1541,
+        132,
+        70
+      ],
+      "confidence": 0.7642
+    },
+    {
+      "index": 35,
+      "image_path": "data/lines/9.jpg/line_035.png",
+      "ocr_text": "في الى طبيع اله رض التي ينقل اليهاان الليخ هج له يكون الا",
+      "baseline": [
+        [
+          958,
+          1580
+        ],
+        [
+          1025,
+          1581
+        ]
+      ],
+      "bbox": [
+        956,
+        1508,
+        69,
+        111
+      ],
+      "confidence": 0.9128
+    },
+    {
+      "index": 36,
+      "image_path": "data/lines/9.jpg/line_036.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          94,
+          1486
+        ],
+        [
+          389,
+          1485
+        ],
+        [
+          658,
+          1499
+        ],
+        [
+          767,
+          1494
+        ]
+      ],
+      "bbox": [
+        93,
+        1421,
+        674,
+        96
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 37,
+      "image_path": "data/lines/9.jpg/line_037.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          660,
+          1578
+        ],
+        [
+          801,
+          1577
+        ]
+      ],
+      "bbox": [
+        659,
+        1530,
+        142,
+        90
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 38,
+      "image_path": "data/lines/9.jpg/line_038.png",
+      "ocr_text": "بغصر كان اصيله بغافرس معدود في الموم القاتله فلما نقل الى",
+      "baseline": [
+        [
+          887,
+          1688
+        ],
+        [
+          977,
+          1696
+        ],
+        [
+          1220,
+          1691
+        ]
+      ],
+      "bbox": [
+        886,
+        1623,
+        334,
+        96
+      ],
+      "confidence": 0.965
+    },
+    {
+      "index": 39,
+      "image_path": "data/lines/9.jpg/line_039.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          119,
+          1602
+        ],
+        [
+          616,
+          1587
+        ]
+      ],
+      "bbox": [
+        116,
+        1515,
+        500,
+        122
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 40,
+      "image_path": "data/lines/9.jpg/line_040.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          539,
+          1694
+        ],
+        [
+          706,
+          1695
+        ]
+      ],
+      "bbox": [
+        539,
+        1633,
+        167,
+        92
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 41,
+      "image_path": "data/lines/9.jpg/line_041.png",
+      "ocr_text": "ءكول",
+      "baseline": [
+        [
+          296,
+          1712
+        ],
+        [
+          477,
+          1703
+        ]
+      ],
+      "bbox": [
+        293,
+        1632,
+        184,
+        98
+      ],
+      "confidence": 0.7806
+    },
+    {
+      "index": 42,
+      "image_path": "data/lines/9.jpg/line_042.png",
+      "ocr_text": "مصر صارما وحلي ابن لكم وحتيب ان ادم عليه السلامة",
+      "baseline": [
+        [
+          560,
+          1787
+        ],
+        [
+          836,
+          1800
+        ],
+        [
+          1237,
+          1783
+        ]
+      ],
+      "bbox": [
+        559,
+        1727,
+        678,
+        97
+      ],
+      "confidence": 0.9335
+    },
+    {
+      "index": 43,
+      "image_path": "data/lines/9.jpg/line_043.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          431,
+          1802
+        ],
+        [
+          503,
+          1804
+        ]
+      ],
+      "bbox": [
+        430,
+        1741,
+        74,
+        81
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 44,
+      "image_path": "data/lines/9.jpg/line_044.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          142,
+          1789
+        ],
+        [
+          368,
+          1795
+        ]
+      ],
+      "bbox": [
+        141,
+        1734,
+        227,
+        85
+      ],
+      "confidence": 0.0
+    },
+    {
+      "index": 45,
+      "image_path": "data/lines/9.jpg/line_045.png",
+      "ocr_text": "في اردشم",
+      "baseline": [
+        [
+          986,
+          1907
+        ],
+        [
+          1125,
+          1898
+        ],
+        [
+          1247,
+          1898
+        ]
+      ],
+      "bbox": [
+        983,
+        1830,
+        264,
+        106
+      ],
+      "confidence": 0.9561
+    },
+    {
+      "index": 46,
+      "image_path": "data/lines/9.jpg/line_046.png",
+      "ocr_text": "البنيه مجارد ثم ان يفلح امنجر اردتم كان",
+      "baseline": [
+        [
+          649,
+          1893
+        ],
+        [
+          876,
+          1889
+        ]
+      ],
+      "bbox": [
+        646,
+        1815,
+        230,
+        108
+      ],
+      "confidence": 0.9107
+    },
+    {
+      "index": 47,
+      "image_path": "data/lines/9.jpg/line_047.png",
+      "ocr_text": "",
+      "baseline": [
+        [
+          137,
+          1901
+        ],
+        [
+          518,
+          1893
+        ]
+      ],
+      "bbox": [
+        135,
+        1825,
+        383,
+        115
+      ],
+      "confidence": 0.0
+    }
+  ]
+}
