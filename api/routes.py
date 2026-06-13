@@ -18,6 +18,10 @@ log = get_logger(__name__)
 _PAIRS_DIR = Path("data/training_pairs")
 _MANIFEST  = _PAIRS_DIR / "manifest.json"
 
+# Line corrections storage — module-level so tests can monkeypatch them
+_LINES_DIR       = Path("data/lines")
+_CORRECTIONS_DIR = Path("data/corrections")
+
 # Module-level FastAPI + schema imports so ForwardRef resolution works with
 # `from __future__ import annotations` (PEP 563). FastAPI resolves body
 # annotations via typing.get_type_hints(func), which looks up names in
@@ -40,6 +44,7 @@ try:
         ProfileSuggestResponse,
         CorrectionSubmitRequest, CorrectionSubmitResponse,
         LineGroundTruthRequest, LineGroundTruthResponse, LineGroundTruthItem,
+        LineRecord, LinesPageResponse, LineSaveRequest, LineSaveResponse,
     )
 except ImportError:
     pass
@@ -934,5 +939,159 @@ def register_routes(app):
             media_type="application/zip",
             headers={"Content-Disposition": "attachment; filename=training_pairs.zip"},
         )
+
+    # ── Line correction helpers ────────────────────────────────────────────
+
+    import api.routes as _self_mod
+
+    def _load_lines_json(page_id: str) -> dict | None:
+        p = _self_mod._LINES_DIR / page_id / "lines.json"
+        if not p.exists():
+            return None
+        import json as _j
+        return _j.loads(p.read_text(encoding="utf-8"))
+
+    def _load_corrections(page_id: str) -> dict:
+        p = _self_mod._CORRECTIONS_DIR / page_id / "corrections.json"
+        if not p.exists():
+            return {}
+        import json as _j
+        return _j.loads(p.read_text(encoding="utf-8"))
+
+    def _save_corrections(page_id: str, corrections: dict) -> None:
+        import json as _j
+        d = _self_mod._CORRECTIONS_DIR / page_id
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "corrections.json").write_text(
+            _j.dumps(corrections, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+    # ── GET /api/lines/{page_id} ───────────────────────────────────────────
+    @router.get("/api/lines/{page_id}", response_model=LinesPageResponse)
+    def api_get_lines(page_id: str):
+        data = _load_lines_json(page_id)
+        if data is None:
+            raise HTTPException(status_code=404, detail=f"No lines data for '{page_id}'")
+
+        corrections = _load_corrections(page_id)
+        records = []
+        for ln in data.get("lines", []):
+            idx = ln["index"]
+            key = str(idx)
+            corr = corrections.get(key, {})
+            status = corr.get("status", "pending")
+            records.append(LineRecord(
+                index=idx,
+                image_path=ln.get("image_path", ""),
+                ocr_text=ln.get("ocr_text", ""),
+                corrected_text=corr.get("corrected_text"),
+                bbox=ln.get("bbox", [0, 0, 0, 0]),
+                confidence=ln.get("confidence", 0.0),
+                status=status,
+            ))
+        return LinesPageResponse(page=page_id, lines=records)
+
+    # ── POST /api/lines/{page_id}/{line_index}/correction ──────────────────
+    @router.post(
+        "/api/lines/{page_id}/{line_index}/correction",
+        response_model=LineSaveResponse,
+    )
+    def api_save_line_correction(page_id: str, line_index: int, body: LineSaveRequest):
+        if body.status not in ("corrected", "skipped"):
+            raise HTTPException(status_code=422, detail="status must be 'corrected' or 'skipped'")
+
+        data = _load_lines_json(page_id)
+        if data is None:
+            raise HTTPException(status_code=404, detail=f"No lines data for '{page_id}'")
+        total_lines = len(data.get("lines", []))
+
+        # Save plain-text .gt.txt
+        txt_dir = _self_mod._CORRECTIONS_DIR / page_id
+        txt_dir.mkdir(parents=True, exist_ok=True)
+        gt_file = txt_dir / f"line_{line_index:03d}.txt"
+        gt_file.write_text(body.corrected_text, encoding="utf-8")
+
+        # Update corrections.json metadata
+        corrections = _load_corrections(page_id)
+        from datetime import datetime, timezone
+        corrections[str(line_index)] = {
+            "corrected_text": body.corrected_text,
+            "status": body.status,
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+        }
+        _save_corrections(page_id, corrections)
+
+        total_corrected = sum(
+            1 for v in corrections.values() if v.get("status") == "corrected"
+        )
+        return LineSaveResponse(
+            saved=True,
+            total_corrected=total_corrected,
+            total_lines=total_lines,
+        )
+
+    # ── GET /api/corrections/export ────────────────────────────────────────
+    @router.get("/api/corrections/export")
+    def api_export_corrections():
+        import io as _io, zipfile as _zf, json as _j
+        from fastapi.responses import StreamingResponse
+
+        buf = _io.BytesIO()
+        pair_count = 0
+        readme = (
+            "Kraken training data\n"
+            "====================\n"
+            "To fine-tune Kraken: ketos train -f alto *.gt.txt\n"
+            "See https://kraken.re/main/training.html\n"
+        )
+
+        with _zf.ZipFile(buf, "w", _zf.ZIP_DEFLATED) as zf:
+            zf.writestr("README.txt", readme)
+            manifest_lines = []
+
+            corrections_root = _self_mod._CORRECTIONS_DIR
+            lines_root = _self_mod._LINES_DIR
+            if corrections_root.exists():
+                for page_dir in sorted(corrections_root.iterdir()):
+                    if not page_dir.is_dir():
+                        continue
+                    page_id = page_dir.name
+                    corr_json = page_dir / "corrections.json"
+                    if not corr_json.exists():
+                        continue
+                    corrections = _j.loads(corr_json.read_text(encoding="utf-8"))
+                    for idx_str, corr in corrections.items():
+                        if corr.get("status") != "corrected":
+                            continue
+                        idx = int(idx_str)
+                        img_path = lines_root / page_id / f"line_{idx:03d}.png"
+                        gt_text = corr.get("corrected_text", "")
+                        arc_base = f"{page_id}/line_{idx:03d}"
+                        if img_path.exists():
+                            zf.write(str(img_path), arcname=f"{arc_base}.png")
+                        zf.writestr(f"{arc_base}.gt.txt", gt_text)
+                        manifest_lines.append(f"{arc_base}.png\t{arc_base}.gt.txt")
+                        pair_count += 1
+
+            zf.writestr("manifest.txt", "\n".join(manifest_lines))
+
+        buf.seek(0)
+        return StreamingResponse(
+            buf,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": "attachment; filename=training_data.zip",
+                "X-Pair-Count": str(pair_count),
+            },
+        )
+
+    # ── GET /api/lines/{page_id}/image/{filename} ──────────────────────────
+    @router.get("/api/lines/{page_id}/image/{filename}")
+    def api_serve_line_image(page_id: str, filename: str):
+        from fastapi.responses import FileResponse
+        img_path = _self_mod._LINES_DIR / page_id / filename
+        if not img_path.exists() or img_path.suffix not in (".png", ".jpg", ".jpeg"):
+            raise HTTPException(status_code=404, detail="Line image not found")
+        return FileResponse(str(img_path), media_type="image/png")
 
     app.include_router(router)

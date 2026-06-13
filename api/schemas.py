@@ -242,3 +242,31 @@ class LineGroundTruthResponse(BaseModel):
     page_id: str
     lines: List[LineGroundTruthItem]
     saved_at: str
+
+
+# ── Line correction / training-data generation ────────────────────────────────
+
+class LineRecord(BaseModel):
+    index: int
+    image_path: str
+    ocr_text: str
+    corrected_text: Optional[str] = None
+    bbox: List[int]          # [x, y, w, h]
+    confidence: float
+    status: str              # "pending" | "corrected" | "skipped"
+
+
+class LinesPageResponse(BaseModel):
+    page: str
+    lines: List[LineRecord]
+
+
+class LineSaveRequest(BaseModel):
+    corrected_text: str
+    status: str              # "corrected" | "skipped"
+
+
+class LineSaveResponse(BaseModel):
+    saved: bool
+    total_corrected: int
+    total_lines: int
