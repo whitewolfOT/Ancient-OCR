@@ -21,6 +21,8 @@ from utils.logging import get_logger
 log = get_logger(__name__)
 
 _ARABIC_WORD_SEP = re.compile(r'[\s‌‍]+')  # space + zero-width joiners
+_CC_GAP_PX  = 15   # horizontal gap threshold for word grouping (pixels)
+_CC_MIN_AREA = 6   # minimum CC area to count as ink (pixels²)
 
 
 class KrakenBackend(OCRBackend):
@@ -177,6 +179,7 @@ class KrakenBackend(OCRBackend):
                 self._rec_model, pil_img, seg,
                 bidi_reordering=self.profile.rtl,
             ))
+            page_np_gray = np.array(pil_img.convert("L"))
 
             # Secondary model records (N-best signal)
             secondary_records = []
@@ -198,7 +201,20 @@ class KrakenBackend(OCRBackend):
                 sec_rec = sec_by_line.get(line_idx)
                 sec_words = {w: c for w, c, _ in self._split_prediction(sec_rec)} if sec_rec else {}
 
-                for word_text, span_confs, span_baseline in self._split_prediction(rec):
+                # Compute line crop for CC word detection
+                line_crop_arr = None
+                lcrop_x = lcrop_y = 0
+                boundary = getattr(line, "boundary", None) or []
+                if boundary:
+                    bxs = [int(p[0]) for p in boundary]
+                    bys = [int(p[1]) for p in boundary]
+                    lx1 = max(0, min(bxs)); ly1 = max(0, min(bys))
+                    lx2 = min(page_np_gray.shape[1], max(bxs))
+                    ly2 = min(page_np_gray.shape[0], max(bys))
+                    if lx2 > lx1 and ly2 > ly1:
+                        line_crop_arr = page_np_gray[ly1:ly2, lx1:lx2]
+                        lcrop_x, lcrop_y = lx1, ly1
+                for word_text, span_confs, span_baseline in self._split_prediction(rec, line_crop_arr, lcrop_x, lcrop_y):
                     if not word_text.strip():
                         continue
                     conf = float(sum(span_confs) / len(span_confs)) if span_confs else 0.0
@@ -249,6 +265,9 @@ class KrakenBackend(OCRBackend):
     def _split_prediction(
         self,
         record,
+        line_crop: "np.ndarray | None" = None,
+        crop_x: int = 0,
+        crop_y: int = 0,
     ) -> list[tuple[str, list[float], list[tuple[int, int]]]]:
         """Split a Kraken OCR record into (word_text, confidences, baseline_pts) triples.
 
@@ -261,6 +280,11 @@ class KrakenBackend(OCRBackend):
 
         if not text:
             return []
+
+        if line_crop is not None and line_crop.size > 0:
+            word_bboxes = self._words_from_cc(line_crop, crop_x, crop_y)
+            if word_bboxes:
+                return self._assign_chars_to_words(text, cuts, confs, word_bboxes)
 
         result = []
         char_idx = 0
@@ -296,6 +320,98 @@ class KrakenBackend(OCRBackend):
             result.append((word, word_confs, baseline_pts))
             char_idx = end + 1  # +1 for separator
 
+        return result
+
+    def _words_from_cc(
+        self,
+        crop: np.ndarray,
+        crop_x: int,
+        crop_y: int,
+        gap_px: int = _CC_GAP_PX,
+    ) -> list[tuple[int, int, int, int]]:
+        """CC-based word segmentation. Returns (x,y,w,h) bboxes in PAGE coords, RTL order."""
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop.copy()
+        if float(gray.mean()) > 127.0:
+            gray = cv2.bitwise_not(gray)
+        _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        n, _labels, stats, _ = cv2.connectedComponentsWithStats(binary, connectivity=8)
+        comps = []
+        for lbl in range(1, n):
+            x, y, w, h, area = stats[lbl]
+            if area >= _CC_MIN_AREA:
+                comps.append((x, y, w, h))
+        if not comps:
+            return []
+        comps.sort(key=lambda c: c[0])
+        groups: list[list[tuple]] = [[comps[0]]]
+        for comp in comps[1:]:
+            cx = comp[0]
+            right_of_group = max(c[0] + c[2] for c in groups[-1])
+            if cx - right_of_group <= gap_px:
+                groups[-1].append(comp)
+            else:
+                groups.append([comp])
+        word_bboxes: list[tuple[int, int, int, int]] = []
+        for grp in groups:
+            gx1 = min(c[0] for c in grp)
+            gy1 = min(c[1] for c in grp)
+            gx2 = max(c[0] + c[2] for c in grp)
+            gy2 = max(c[1] + c[3] for c in grp)
+            word_bboxes.append((gx1 + crop_x, gy1 + crop_y, gx2 - gx1, gy2 - gy1))
+        word_bboxes.sort(key=lambda b: -(b[0] + b[2]))  # RTL: right edge descending
+        return word_bboxes
+
+    def _assign_chars_to_words(
+        self,
+        text: str,
+        cuts,
+        confs: list[float],
+        word_bboxes: list[tuple[int, int, int, int]],
+    ) -> list[tuple[str, list[float], list[tuple[int, int]]]]:
+        """Assign characters to CC-derived word bboxes by cut x-position."""
+        chars = list(text)
+
+        def _cut_xcenter(cut) -> float | None:
+            try:
+                if hasattr(cut, "__iter__"):
+                    pts = list(cut)
+                    if pts and hasattr(pts[0], "__iter__"):
+                        return float(sum(p[0] for p in pts) / len(pts))
+                    if len(pts) >= 4:
+                        return float((pts[0] + pts[2]) / 2)
+            except Exception:
+                pass
+            return None
+
+        char_x = [_cut_xcenter(cuts[i]) if i < len(cuts) else None for i in range(len(chars))]
+
+        assignments: list[int] = []
+        for cx in char_x:
+            if cx is None:
+                assignments.append(0)
+                continue
+            found = next(
+                (wi for wi, (wx, wy, ww, wh) in enumerate(word_bboxes) if wx <= cx <= wx + ww),
+                None,
+            )
+            if found is None:
+                found = min(
+                    range(len(word_bboxes)),
+                    key=lambda wi: abs(word_bboxes[wi][0] + word_bboxes[wi][2] / 2 - cx),
+                )
+            assignments.append(found)
+
+        result: list[tuple[str, list[float], list[tuple[int, int]]]] = []
+        for wi, (wx, wy, ww, wh) in enumerate(word_bboxes):
+            indices = [i for i, a in enumerate(assignments) if a == wi]
+            if not indices:
+                continue
+            word_text = "".join(chars[i] for i in indices)
+            if not word_text.strip():
+                continue
+            word_confs = [confs[i] for i in indices if i < len(confs)]
+            baseline_pts = [(wx, wy + wh), (wx + ww, wy + wh)]
+            result.append((word_text, word_confs, baseline_pts))
         return result
 
     def _empty_result(self, page_index: int) -> OCRResult:
