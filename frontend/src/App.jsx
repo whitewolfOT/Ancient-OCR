@@ -9,6 +9,7 @@ import SimilarPagesPanel from './components/SimilarPagesPanel'
 import ProfileSelector from './components/ProfileSelector'
 import ReviewTab from './components/ReviewTab'
 import AnnotationView from './components/AnnotationView'
+import LineReviewView from './components/LineReviewView'
 import { runPageOCR } from './api/client'
 
 export default function App() {
@@ -19,7 +20,7 @@ export default function App() {
   const [ocrTokens, setOcrTokens] = useState(null)   // null | token[]
   const [ocrRunning, setOcrRunning] = useState(false)
   const [profileName, setProfileName] = useState('default')
-  const [activeView, setActiveView] = useState('workspace') // 'workspace' | 'review'
+  const [activeView, setActiveView] = useState('workspace') // 'workspace' | 'review' | 'annotate' | 'line-review'
   // Incrementing this remounts PageSidebar, re-fetching page list with updated status icons
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
 
@@ -54,6 +55,15 @@ export default function App() {
     } finally {
       setOcrRunning(false)
     }
+  }
+
+  // ── Line review view ─────────────────────────────────────────────────────
+  if (activeView === 'line-review') {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden">
+        <LineReviewView onBack={() => setActiveView('workspace')} />
+      </div>
+    )
   }
 
   // ── Annotate view ────────────────────────────────────────────────────────
@@ -104,6 +114,12 @@ export default function App() {
             >
               ✏️ Annotate →
             </button>
+            <button
+              onClick={() => setActiveView('line-review')}
+              className="text-sm text-indigo-600 hover:underline"
+            >
+              📝 Correct Lines →
+            </button>
           </div>
         </div>
       </div>
@@ -129,6 +145,12 @@ export default function App() {
             className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
           >
             ✏️ Annotate
+          </button>
+          <button
+            onClick={() => setActiveView('line-review')}
+            className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            📝 Correct Lines
           </button>
         </div>
       </div>
