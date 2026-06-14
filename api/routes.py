@@ -1036,6 +1036,48 @@ def register_routes(app):
         import io as _io, zipfile as _zf, json as _j
         from fastapi.responses import StreamingResponse
 
+        def _get_png_bytes(page_id: str, idx: int) -> bytes | None:
+            """Return PNG bytes for a line crop.
+
+            Priority:
+            1. Pre-generated file at data/lines/{page_id}/line_NNN.png
+            2. Generate on-the-fly from original image + bbox in lines.json
+            """
+            cached = _self_mod._LINES_DIR / page_id / f"line_{idx:03d}.png"
+            if cached.exists():
+                return cached.read_bytes()
+
+            # On-the-fly generation
+            lines_data = _load_lines_json(page_id)
+            if not lines_data:
+                return None
+            line_records = lines_data.get("lines", [])
+            if idx >= len(line_records):
+                return None
+            bbox = line_records[idx].get("bbox", [])
+            if len(bbox) < 4:
+                return None
+
+            src_img = Path("data/test_images") / page_id
+            if not src_img.exists():
+                return None
+
+            try:
+                import cv2 as _cv2, numpy as _np
+                img = _cv2.imread(str(src_img))
+                if img is None:
+                    return None
+                bx, by, bw, bh = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+                PAD = 4
+                h_img, w_img = img.shape[:2]
+                x1 = max(0, bx - PAD); y1 = max(0, by - PAD)
+                x2 = min(w_img, bx + bw + PAD); y2 = min(h_img, by + bh + PAD)
+                crop = img[y1:y2, x1:x2]
+                ok, buf_enc = _cv2.imencode(".png", crop)
+                return bytes(buf_enc) if ok else None
+            except Exception:
+                return None
+
         buf = _io.BytesIO()
         pair_count = 0
         readme = (
@@ -1050,7 +1092,6 @@ def register_routes(app):
             manifest_lines = []
 
             corrections_root = _self_mod._CORRECTIONS_DIR
-            lines_root = _self_mod._LINES_DIR
             if corrections_root.exists():
                 for page_dir in sorted(corrections_root.iterdir()):
                     if not page_dir.is_dir():
@@ -1064,16 +1105,27 @@ def register_routes(app):
                         if corr.get("status") != "corrected":
                             continue
                         idx = int(idx_str)
-                        img_path = lines_root / page_id / f"line_{idx:03d}.png"
                         gt_text = corr.get("corrected_text", "")
                         arc_base = f"{page_id}/line_{idx:03d}"
-                        if img_path.exists():
-                            zf.write(str(img_path), arcname=f"{arc_base}.png")
+
+                        png_bytes = _get_png_bytes(page_id, idx)
+                        if png_bytes:
+                            zf.writestr(f"{arc_base}.png", png_bytes)
                         zf.writestr(f"{arc_base}.gt.txt", gt_text)
                         manifest_lines.append(f"{arc_base}.png\t{arc_base}.gt.txt")
                         pair_count += 1
 
             zf.writestr("manifest.txt", "\n".join(manifest_lines))
+
+        buf.seek(0)
+        return StreamingResponse(
+            buf,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": "attachment; filename=training_data.zip",
+                "X-Pair-Count": str(pair_count),
+            },
+        )
 
         buf.seek(0)
         return StreamingResponse(
