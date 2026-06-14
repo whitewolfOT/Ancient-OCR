@@ -202,6 +202,8 @@ kraken:
   binarizer: "nlbin"
   device: "cpu"
   model_dir: "models/kraken"
+  voting_enabled: true
+  voting_agreement_threshold: 0.1
 
 align:
   passim:

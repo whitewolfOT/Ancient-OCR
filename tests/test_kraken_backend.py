@@ -179,3 +179,38 @@ def test_profile_n_best_passed():
     # secondary model is consulted when self._rec_secondary is set
     backend._rec_secondary = MagicMock()
     assert backend._rec_secondary is not None
+
+
+# ── N-best voting tests ───────────────────────────────────────────────────────
+
+def test_vote_agrees_when_similar():
+    """Near-identical hypotheses (dist < 0.1) → primary returned, conf boosted."""
+    from ocr_engine.kraken_backend import KrakenBackend
+    # Identical text: dist = 0 < 0.1, agreement path
+    p_conf, s_conf = 0.80, 0.84
+    text, conf = KrakenBackend._vote_hypotheses(
+        "الكتاب", p_conf, "الكتاب", s_conf, threshold=0.1
+    )
+    assert text == "الكتاب"
+    expected = min(1.0, (p_conf + s_conf) / 2 + 0.02)
+    assert abs(conf - expected) < 1e-9
+    assert conf > p_conf  # boost lifts above primary alone
+
+
+def test_vote_picks_higher_conf_when_different():
+    """Divergent hypotheses → whichever has higher mean conf wins."""
+    from ocr_engine.kraken_backend import KrakenBackend
+    # Secondary conf is higher → secondary text should win
+    text, conf = KrakenBackend._vote_hypotheses(
+        "ابجد", 0.60, "أبجد هوز", 0.85, threshold=0.1
+    )
+    assert text == "أبجد هوز"
+    assert conf == 0.85
+
+
+def test_vote_symmetric():
+    """Swapping primary/secondary with equal conf → primary still wins."""
+    from ocr_engine.kraken_backend import KrakenBackend
+    # Equal conf, very different texts → primary wins (secondary_conf not > primary)
+    text_a, _ = KrakenBackend._vote_hypotheses("alpha", 0.80, "beta", 0.80, threshold=0.1)
+    assert text_a == "alpha"

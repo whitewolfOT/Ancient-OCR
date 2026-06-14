@@ -137,6 +137,29 @@ class KrakenBackend(OCRBackend):
         return PILImage.fromarray(binary)
 
     @staticmethod
+    def _vote_hypotheses(
+        primary: str, primary_conf: float,
+        secondary: str, secondary_conf: float,
+        threshold: float = 0.1,
+    ) -> tuple[str, float]:
+        """Compare two line hypotheses. Return (best_text, best_confidence).
+
+        Agreement (normalised edit distance < threshold): use primary, boost conf.
+        Disagreement: pick whichever has higher mean character confidence.
+        """
+        try:
+            from rapidfuzz.distance import Levenshtein
+            max_len = max(len(primary), len(secondary), 1)
+            dist = Levenshtein.distance(primary, secondary) / max_len
+        except Exception:
+            dist = 1.0  # treat as disagreement if rapidfuzz unavailable
+        if dist < threshold:
+            return primary, min(1.0, (primary_conf + secondary_conf) / 2 + 0.02)
+        if secondary_conf > primary_conf:
+            return secondary, secondary_conf
+        return primary, primary_conf
+
+    @staticmethod
     def _baseline_bbox(points: list[tuple[int, int]]) -> tuple[int, int, int, int]:
         xs = [p[0] for p in points]
         ys = [p[1] for p in points]
@@ -196,9 +219,33 @@ class KrakenBackend(OCRBackend):
             for i, sec_rec in enumerate(secondary_records):
                 sec_by_line[i] = sec_rec
 
+            voting_enabled = getattr(
+                getattr(self.config, "kraken", None), "voting_enabled", True
+            ) if self.config else True
+            voting_threshold = getattr(
+                getattr(self.config, "kraken", None), "voting_agreement_threshold", 0.1
+            ) if self.config else 0.1
+
             for line_idx, (line, rec) in enumerate(zip(seg.lines, records)):
                 line_id = str(id(line))
                 sec_rec = sec_by_line.get(line_idx)
+
+                # N-best voting: pick best line text before word-splitting
+                line_text = rec.prediction
+                line_conf = float(sum(rec.confidences) / len(rec.confidences)) if rec.confidences else 0.0
+                if voting_enabled and sec_rec and self.profile.n_best > 1:
+                    sec_text = sec_rec.prediction
+                    sec_conf = float(sum(sec_rec.confidences) / len(sec_rec.confidences)) if sec_rec.confidences else 0.0
+                    voted_text, voted_conf = self._vote_hypotheses(
+                        line_text, line_conf, sec_text, sec_conf, voting_threshold
+                    )
+                    # Swap primary record if secondary won
+                    if voted_text == sec_text:
+                        rec, sec_rec = sec_rec, rec
+                        line_text, line_conf = voted_text, voted_conf
+                    else:
+                        line_conf = voted_conf
+
                 sec_words = {w: c for w, c, _ in self._split_prediction(sec_rec)} if sec_rec else {}
 
                 # Compute line crop for CC word detection
@@ -236,11 +283,8 @@ class KrakenBackend(OCRBackend):
                         candidates=candidates,
                     ))
 
-                line_texts.append(rec.prediction)
-                confs = rec.confidences
-                line_confidences.append(
-                    float(sum(confs) / len(confs)) if confs else 0.0
-                )
+                line_texts.append(line_text)
+                line_confidences.append(line_conf)
 
             page_conf = float(sum(line_confidences) / len(line_confidences)) if line_confidences else 0.0
             log.info(f"kraken: process_image done page={page_index} lines={len(line_texts)} words={len(all_words)} conf={page_conf:.3f}")
