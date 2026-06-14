@@ -35,3 +35,4 @@ Thumbs.db
 # Line crops (images large, JSONs committed)
 data/lines/**/*.png
 data/corrections/
+data/corrections_import/
