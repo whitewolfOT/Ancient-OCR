@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import UploadZone from './components/UploadZone'
 import PageSidebar from './components/PageSidebar'
 import PageViewer from './components/PageViewer'
@@ -23,6 +23,17 @@ export default function App() {
   const [activeView, setActiveView] = useState('workspace') // 'workspace' | 'review' | 'annotate' | 'line-review'
   // Incrementing this remounts PageSidebar, re-fetching page list with updated status icons
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
+  const [correctionSummary, setCorrectionSummary] = useState(null)
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+  // Fetch correction progress once on mount to show resume banner
+  useEffect(() => {
+    fetch(`${API_BASE}/api/corrections/summary`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setCorrectionSummary(data) })
+      .catch(() => {})
+  }, [API_BASE])
 
   function handleUploadSuccess(docId, clusters) {
     setDoc({ docId, clusters })
@@ -121,6 +132,20 @@ export default function App() {
               📝 Correct Lines →
             </button>
           </div>
+          {/* Resume correction banner */}
+          {correctionSummary && correctionSummary.total_corrected > 0 && (
+            <div className="mt-6 flex items-center justify-center">
+              <button
+                onClick={() => setActiveView('line-review')}
+                className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-700 hover:bg-green-100"
+              >
+                <span className="text-green-500">▶</span>
+                Resume correction —{' '}
+                <strong>{correctionSummary.total_corrected} / {correctionSummary.total_lines}</strong>
+                {' '}lines corrected across 9 pages
+              </button>
+            </div>
+          )}
         </div>
       </div>
     )

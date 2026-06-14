@@ -40,6 +40,43 @@ function ConfBar({ value }) {
   )
 }
 
+// ── Page overview strip ───────────────────────────────────────────────────────
+function PageOverview({ pageStats, currentPage, onSelect }) {
+  return (
+    <div className="flex flex-wrap gap-1 border-b border-gray-100 bg-gray-50 px-3 py-1.5">
+      {PAGES.map(p => {
+        const s = pageStats[p] || { corrected: 0, skipped: 0, total: 0, pending: 0 }
+        const allDone = s.total > 0 && s.pending === 0
+        const started = s.corrected > 0 || s.skipped > 0
+        const isCurrent = p === currentPage
+        let dotColor = 'bg-gray-300'
+        if (allDone)   dotColor = 'bg-green-500'
+        else if (started) dotColor = 'bg-yellow-400'
+        return (
+          <button
+            key={p}
+            onClick={() => onSelect(p)}
+            title={`${p}: ${s.corrected} corrected, ${s.skipped} skipped, ${s.pending} pending`}
+            className={`flex items-center gap-1 rounded px-2 py-0.5 text-xs transition-colors ${
+              isCurrent
+                ? 'bg-blue-100 font-semibold text-blue-700'
+                : 'text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <span className={`inline-block h-2 w-2 rounded-full ${dotColor}`} />
+            {p.replace('.jpg', '')}
+            {s.total > 0 && (
+              <span className="text-gray-400">
+                {s.corrected}/{s.total}
+              </span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function LineReviewView({ onBack }) {
   const [currentPage, setCurrentPage] = useState(PAGES[0])
   const [lines, setLines]             = useState([])
@@ -48,6 +85,7 @@ export default function LineReviewView({ onBack }) {
   const [loading, setLoading]         = useState(false)
   const [saving, setSaving]           = useState(false)
   const [imgScale, setImgScale]       = useState({ x: 1, y: 1 })
+  const [pageStats, setPageStats]     = useState({})
 
   const textareaRef  = useRef(null)
   const pageImgRef   = useRef(null)
@@ -62,6 +100,21 @@ export default function LineReviewView({ onBack }) {
   savingRef.current    = saving
 
   const currentLine = lines[currentIdx] ?? null
+
+  // ── Fetch aggregate summary (all pages) ──────────────────────────────────
+  const fetchSummary = useCallback(() => {
+    fetch(`${API}/api/corrections/summary`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return
+        const map = {}
+        for (const pg of data.pages) map[pg.page_id] = pg
+        setPageStats(map)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => { fetchSummary() }, [fetchSummary])
 
   // ── Load lines for page ──────────────────────────────────────────────────
   useEffect(() => {
@@ -137,10 +190,12 @@ export default function LineReviewView({ onBack }) {
       )
       const next = updated.findIndex((l, i) => i > idx && l.status === 'pending')
       setCurrentIdx(next >= 0 ? next : Math.min(idx + 1, ls.length - 1))
+      // Refresh summary counters
+      fetchSummary()
     } finally {
       setSaving(false)
     }
-  }, [currentPage])
+  }, [currentPage, fetchSummary])
 
   // ── Keyboard handler ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -185,15 +240,18 @@ export default function LineReviewView({ onBack }) {
             ← Back
           </button>
 
-          {/* Page selector */}
+          {/* Page selector — label shows per-page progress */}
           <select
             value={currentPage}
             onChange={e => setCurrentPage(e.target.value)}
             className="rounded border border-gray-300 bg-white px-2 py-1 text-sm"
           >
-            {PAGES.map(p => (
-              <option key={p} value={p}>{p}</option>
-            ))}
+            {PAGES.map(p => {
+              const s = pageStats[p] || { corrected: 0, total: 0 }
+              const prefix = s.total === 0 ? '' : s.corrected === s.total ? '✓ ' : s.corrected > 0 ? '◑ ' : '○ '
+              const count  = s.total > 0 ? ` (${s.corrected}/${s.total})` : ''
+              return <option key={p} value={p}>{prefix}{p}{count}</option>
+            })}
           </select>
 
           {/* Line counter */}
@@ -238,6 +296,11 @@ export default function LineReviewView({ onBack }) {
 
         {/* ── Left: full page with line overlays ──────────────────────── */}
         <div className="relative flex w-1/2 flex-col overflow-hidden border-r border-gray-200 bg-white">
+          <PageOverview
+            pageStats={pageStats}
+            currentPage={currentPage}
+            onSelect={setCurrentPage}
+          />
           {loading ? (
             <div className="flex flex-1 items-center justify-center text-gray-400 text-sm">
               Loading…
