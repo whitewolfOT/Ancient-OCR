@@ -38,6 +38,7 @@ profiles:
         target_width: 2
       denoise_strength: 5
       sharpen: 0.0
+      multispectral_enabled: true
 
   maghrebi_degraded:
     description: "Maghrebi script — bleed-through, curved lines"

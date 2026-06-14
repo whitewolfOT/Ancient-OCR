@@ -72,6 +72,21 @@ def sharpen(img: np.ndarray, amount: float = 0.5) -> np.ndarray:
     return cv2.addWeighted(img, 1 + amount, blurred, -amount, 0)
 
 
+def best_channel_extraction(img: np.ndarray) -> np.ndarray:
+    """Return the colour channel with highest local contrast (std of pixel values).
+
+    For colour images: split into B, G, R; pick the channel whose std is
+    highest — higher std means more ink/parchment separation, better for OCR.
+    For grayscale: return as-is (no-op).
+    """
+    if len(img.shape) == 2:
+        return img
+    channels = cv2.split(img)   # B, G, R order (OpenCV convention)
+    scores = [float(np.std(ch)) for ch in channels]
+    best_idx = int(np.argmax(scores))
+    return channels[best_idx]
+
+
 def apply_profile_adjustments(img: np.ndarray, params: PreprocessingParams) -> np.ndarray:
     """Apply all profile-driven adjustments in canonical order.
 

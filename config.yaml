@@ -26,6 +26,9 @@ preprocessing:
     faded_ink_median: 200           # grayscale median > this → faded_ink
     high_noise_laplacian: 500       # Laplacian variance > this → high_noise
     bleed_through_dark_density: 0.05  # dark pixel fraction in lightest 20% of regions > this
+  multispectral:
+    enabled: true
+    method: "best_channel"   # "best_channel" | "all_channels" (future)
   layout:
     enabled: true
     backend: opencv  # "opencv" | "layoutparser" (needs [layout] extra)

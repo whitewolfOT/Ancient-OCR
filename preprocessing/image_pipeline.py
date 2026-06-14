@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from preprocessing.adjustments import best_channel_extraction
 from utils.logging import get_logger
 
 log = get_logger(__name__)
@@ -60,6 +61,32 @@ def preprocess_image(
     """
     meta: dict = {}
     current = image.copy()
+
+    # Step -1: Multispectral best-channel extraction (colour → grayscale)
+    # Run before any other step so downstream ops work on the highest-contrast channel.
+    _multispectral_on = False
+    try:
+        if profile is not None:
+            _multispectral_on = getattr(profile.preprocessing, "multispectral_enabled", False)
+        elif config is not None:
+            _multispectral_on = (
+                getattr(getattr(config, "preprocessing", None), "multispectral", None) or {}
+            ).get("enabled", False) if isinstance(
+                getattr(getattr(config, "preprocessing", None), "multispectral", None), dict
+            ) else getattr(
+                getattr(getattr(config, "preprocessing", None), "multispectral", None),
+                "enabled", False,
+            )
+    except Exception:
+        pass
+
+    if _multispectral_on and len(current.shape) == 3:
+        current, meta = _run_step(
+            "multispectral", current, meta, True,
+            lambda img: best_channel_extraction(img),
+        )
+    else:
+        meta["multispectral"] = "skipped"
 
     # Degradation detection on the original (pre-processing) image
     try:

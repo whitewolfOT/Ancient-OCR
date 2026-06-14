@@ -21,6 +21,7 @@ class PreprocessingParams:
     stroke_target_width: int = 2
     denoise_strength: int = 0
     sharpen: float = 0.0
+    multispectral_enabled: bool = False
 
 
 @dataclass
@@ -62,6 +63,7 @@ class ProfileManager:
                 stroke_target_width=int(sn.get("target_width", 2)),
                 denoise_strength=int(pp.get("denoise_strength", 0)),
                 sharpen=float(pp.get("sharpen", 0.0)),
+                multispectral_enabled=bool(pp.get("multispectral_enabled", False)),
             )
             self._profiles[name] = OCRProfile(
                 name=name,

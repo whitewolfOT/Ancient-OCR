@@ -81,3 +81,44 @@ def test_apply_pipeline_order_deterministic():
     out1 = apply_profile_adjustments(img.copy(), params)
     out2 = apply_profile_adjustments(img.copy(), params)
     np.testing.assert_array_equal(out1, out2)
+
+
+# ── best_channel_extraction tests ─────────────────────────────────────────────
+
+def test_best_channel_returns_grayscale_for_color_input():
+    """Colour (H, W, 3) input → grayscale (H, W) output."""
+    from preprocessing.adjustments import best_channel_extraction
+    img = np.random.randint(0, 256, (50, 80, 3), dtype=np.uint8)
+    out = best_channel_extraction(img)
+    assert len(out.shape) == 2
+    assert out.shape == (50, 80)
+
+
+def test_best_channel_noop_for_grayscale():
+    """Grayscale input returned unchanged (same object or equal)."""
+    from preprocessing.adjustments import best_channel_extraction
+    img = np.random.randint(0, 256, (50, 80), dtype=np.uint8)
+    out = best_channel_extraction(img)
+    np.testing.assert_array_equal(out, img)
+
+
+def test_best_channel_picks_highest_contrast():
+    """Synthetic image where green channel has max std → green channel returned."""
+    from preprocessing.adjustments import best_channel_extraction
+    h, w = 40, 40
+    # B: uniform 128, G: alternating 0/255, R: uniform 64
+    b = np.full((h, w), 128, dtype=np.uint8)
+    g = np.tile(np.array([0, 255], dtype=np.uint8), (h, w // 2))
+    r = np.full((h, w), 64, dtype=np.uint8)
+    img = np.stack([b, g, r], axis=2)  # BGR order
+    out = best_channel_extraction(img)
+    # Green (index 1) has std ≈ 127.5 — highest; B and R near 0
+    np.testing.assert_array_equal(out, g)
+
+
+def test_best_channel_returns_ndarray():
+    """Output is always a numpy ndarray."""
+    from preprocessing.adjustments import best_channel_extraction
+    img = np.zeros((20, 30, 3), dtype=np.uint8)
+    out = best_channel_extraction(img)
+    assert isinstance(out, np.ndarray)
