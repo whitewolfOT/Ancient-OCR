@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from preprocessing.adjustments import best_channel_extraction
+from preprocessing.adjustments import best_channel_extraction, remove_bleedthrough
 from utils.logging import get_logger
 
 log = get_logger(__name__)
@@ -87,6 +87,30 @@ def preprocess_image(
         )
     else:
         meta["multispectral"] = "skipped"
+
+    # Step -0.5: Bleed-through removal (before DPI normalize; after colour → gray)
+    _bleedthrough_enabled = False
+    _bleedthrough_strength = 0.5
+    try:
+        if profile is not None:
+            _bleedthrough_enabled = getattr(profile.preprocessing, "bleedthrough_enabled", False)
+            _bleedthrough_strength = getattr(profile.preprocessing, "bleedthrough_strength", 0.5)
+        elif config is not None:
+            bt_cfg = getattr(getattr(config, "preprocessing", None), "bleedthrough", None)
+            if bt_cfg is not None:
+                _bleedthrough_enabled = bool(getattr(bt_cfg, "enabled", False))
+                _bleedthrough_strength = float(getattr(bt_cfg, "strength", 0.5))
+    except Exception:
+        pass
+
+    if _bleedthrough_enabled:
+        _strength = _bleedthrough_strength
+        current, meta = _run_step(
+            "bleedthrough", current, meta, True,
+            lambda img: remove_bleedthrough(img, _strength),
+        )
+    else:
+        meta["bleedthrough"] = "skipped"
 
     # Degradation detection on the original (pre-processing) image
     try:

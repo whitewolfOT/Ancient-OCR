@@ -122,3 +122,47 @@ def test_best_channel_returns_ndarray():
     img = np.zeros((20, 30, 3), dtype=np.uint8)
     out = best_channel_extraction(img)
     assert isinstance(out, np.ndarray)
+
+
+# ── remove_bleedthrough tests ──────────────────────────────────────────────────
+
+def test_bleedthrough_noop_at_zero_strength():
+    """strength=0 → image returned unchanged."""
+    from preprocessing.adjustments import remove_bleedthrough
+    img = _gray(128)
+    out = remove_bleedthrough(img, strength=0)
+    np.testing.assert_array_equal(out, img)
+
+
+def test_bleedthrough_changes_image_at_nonzero():
+    """strength>0 on a non-uniform image should change pixel values."""
+    from preprocessing.adjustments import remove_bleedthrough
+    rng = np.random.default_rng(42)
+    img = rng.integers(50, 200, (80, 80), dtype=np.uint8)
+    out = remove_bleedthrough(img, strength=0.5)
+    assert not np.array_equal(out, img)
+
+
+def test_bleedthrough_output_same_shape():
+    """Output shape matches input shape for grayscale input."""
+    from preprocessing.adjustments import remove_bleedthrough
+    img = _gray(100, h=60, w=90)
+    out = remove_bleedthrough(img, strength=0.5)
+    assert out.shape == img.shape
+
+
+def test_bleedthrough_output_uint8():
+    """Output dtype is uint8."""
+    from preprocessing.adjustments import remove_bleedthrough
+    img = _gray(128)
+    out = remove_bleedthrough(img, strength=0.5)
+    assert out.dtype == np.uint8
+
+
+def test_bleedthrough_noop_on_clean_image():
+    """Uniform-grey image should remain close to original after removal."""
+    from preprocessing.adjustments import remove_bleedthrough
+    img = _gray(200)
+    out = remove_bleedthrough(img, strength=0.5)
+    assert out.shape == img.shape
+    assert out.dtype == np.uint8

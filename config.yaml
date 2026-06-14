@@ -29,6 +29,9 @@ preprocessing:
   multispectral:
     enabled: true
     method: "best_channel"   # "best_channel" | "all_channels" (future)
+  bleedthrough:
+    enabled: false
+    strength: 0.5
   layout:
     enabled: true
     backend: opencv  # "opencv" | "layoutparser" (needs [layout] extra)
