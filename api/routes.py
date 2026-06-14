@@ -1094,4 +1094,36 @@ def register_routes(app):
             raise HTTPException(status_code=404, detail="Line image not found")
         return FileResponse(str(img_path), media_type="image/png")
 
+    # ── GET /api/corrections/summary ───────────────────────────────────────
+    @router.get("/api/corrections/summary")
+    def api_corrections_summary():
+        """Per-page and aggregate correction progress. Fast — reads only JSONs."""
+        import json as _j
+        _KNOWN_PAGES = [f"{i}.jpg" for i in range(1, 10)]
+        pages_out = []
+        grand_total = grand_corrected = 0
+
+        for page_id in _KNOWN_PAGES:
+            lines_data = _load_lines_json(page_id)
+            total = len(lines_data.get("lines", [])) if lines_data else 0
+            corrections = _load_corrections(page_id)
+            corrected = sum(1 for v in corrections.values() if v.get("status") == "corrected")
+            skipped   = sum(1 for v in corrections.values() if v.get("status") == "skipped")
+            pending   = max(0, total - corrected - skipped)
+            pages_out.append({
+                "page_id":   page_id,
+                "total":     total,
+                "corrected": corrected,
+                "skipped":   skipped,
+                "pending":   pending,
+            })
+            grand_total     += total
+            grand_corrected += corrected
+
+        return {
+            "total_corrected": grand_corrected,
+            "total_lines":     grand_total,
+            "pages":           pages_out,
+        }
+
     app.include_router(router)
