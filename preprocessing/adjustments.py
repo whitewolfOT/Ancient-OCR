@@ -72,6 +72,43 @@ def sharpen(img: np.ndarray, amount: float = 0.5) -> np.ndarray:
     return cv2.addWeighted(img, 1 + amount, blurred, -amount, 0)
 
 
+def best_channel_extraction(img: np.ndarray) -> np.ndarray:
+    """Return the colour channel with highest local contrast (std of pixel values).
+
+    For colour images: split into B, G, R; pick the channel whose std is
+    highest — higher std means more ink/parchment separation, better for OCR.
+    For grayscale: return as-is (no-op).
+    """
+    if len(img.shape) == 2:
+        return img
+    channels = cv2.split(img)   # B, G, R order (OpenCV convention)
+    scores = [float(np.std(ch)) for ch in channels]
+    best_idx = int(np.argmax(scores))
+    return channels[best_idx]
+
+
+def remove_bleedthrough(img: np.ndarray, strength: float = 0.5) -> np.ndarray:
+    """Remove bleed-through from manuscript images.
+
+    Method: Background estimation via large morphological closing (gives local
+    max = parchment background). Normalize each pixel by dividing by background
+    so uneven illumination and bleed-through stains are flattened to white.
+    Blend normalized result with original by strength.
+    strength=0.0 → no-op. Input/output: uint8 (grayscale or BGR).
+    """
+    if strength <= 0:
+        return img
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if len(img.shape) == 3 else img
+    kernel_size = 51
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+    background = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+    # Normalize: pixel / (background/255) → flattens dark background stains to white
+    bg_f = np.maximum(background.astype(np.float32), 1.0)
+    normalized = np.clip(gray.astype(np.float32) * 255.0 / bg_f, 0, 255).astype(np.uint8)
+    result = cv2.addWeighted(gray, 1.0 - strength, normalized, strength, 0)
+    return result.astype(np.uint8)
+
+
 def apply_profile_adjustments(img: np.ndarray, params: PreprocessingParams) -> np.ndarray:
     """Apply all profile-driven adjustments in canonical order.
 

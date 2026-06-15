@@ -26,6 +26,12 @@ preprocessing:
     faded_ink_median: 200           # grayscale median > this → faded_ink
     high_noise_laplacian: 500       # Laplacian variance > this → high_noise
     bleed_through_dark_density: 0.05  # dark pixel fraction in lightest 20% of regions > this
+  multispectral:
+    enabled: true
+    method: "best_channel"   # "best_channel" | "all_channels" (future)
+  bleedthrough:
+    enabled: false
+    strength: 0.5
   layout:
     enabled: true
     backend: opencv  # "opencv" | "layoutparser" (needs [layout] extra)
@@ -202,6 +208,8 @@ kraken:
   binarizer: "nlbin"
   device: "cpu"
   model_dir: "models/kraken"
+  voting_enabled: true
+  voting_agreement_threshold: 0.1
 
 align:
   passim:

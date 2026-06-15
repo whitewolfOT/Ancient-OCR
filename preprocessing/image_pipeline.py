@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from preprocessing.adjustments import best_channel_extraction, remove_bleedthrough
 from utils.logging import get_logger
 
 log = get_logger(__name__)
@@ -60,6 +61,56 @@ def preprocess_image(
     """
     meta: dict = {}
     current = image.copy()
+
+    # Step -1: Multispectral best-channel extraction (colour → grayscale)
+    # Run before any other step so downstream ops work on the highest-contrast channel.
+    _multispectral_on = False
+    try:
+        if profile is not None:
+            _multispectral_on = getattr(profile.preprocessing, "multispectral_enabled", False)
+        elif config is not None:
+            _multispectral_on = (
+                getattr(getattr(config, "preprocessing", None), "multispectral", None) or {}
+            ).get("enabled", False) if isinstance(
+                getattr(getattr(config, "preprocessing", None), "multispectral", None), dict
+            ) else getattr(
+                getattr(getattr(config, "preprocessing", None), "multispectral", None),
+                "enabled", False,
+            )
+    except Exception:
+        pass
+
+    if _multispectral_on and len(current.shape) == 3:
+        current, meta = _run_step(
+            "multispectral", current, meta, True,
+            lambda img: best_channel_extraction(img),
+        )
+    else:
+        meta["multispectral"] = "skipped"
+
+    # Step -0.5: Bleed-through removal (before DPI normalize; after colour → gray)
+    _bleedthrough_enabled = False
+    _bleedthrough_strength = 0.5
+    try:
+        if profile is not None:
+            _bleedthrough_enabled = getattr(profile.preprocessing, "bleedthrough_enabled", False)
+            _bleedthrough_strength = getattr(profile.preprocessing, "bleedthrough_strength", 0.5)
+        elif config is not None:
+            bt_cfg = getattr(getattr(config, "preprocessing", None), "bleedthrough", None)
+            if bt_cfg is not None:
+                _bleedthrough_enabled = bool(getattr(bt_cfg, "enabled", False))
+                _bleedthrough_strength = float(getattr(bt_cfg, "strength", 0.5))
+    except Exception:
+        pass
+
+    if _bleedthrough_enabled:
+        _strength = _bleedthrough_strength
+        current, meta = _run_step(
+            "bleedthrough", current, meta, True,
+            lambda img: remove_bleedthrough(img, _strength),
+        )
+    else:
+        meta["bleedthrough"] = "skipped"
 
     # Degradation detection on the original (pre-processing) image
     try:

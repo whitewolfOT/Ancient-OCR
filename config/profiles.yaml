@@ -38,6 +38,7 @@ profiles:
         target_width: 2
       denoise_strength: 5
       sharpen: 0.0
+      multispectral_enabled: true
 
   maghrebi_degraded:
     description: "Maghrebi script — bleed-through, curved lines"
@@ -58,6 +59,8 @@ profiles:
         target_width: 2
       denoise_strength: 15
       sharpen: 0.5
+      bleedthrough_enabled: true
+      bleedthrough_strength: 0.5
 
   low_contrast:
     description: "Faded ink — low contrast scan"
