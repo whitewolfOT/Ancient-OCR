@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alto xmlns="http://www.loc.gov/standards/alto/ns-v4#"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.loc.gov/standards/alto/ns-v4# http://www.loc.gov/standards/alto/v4/alto-4-2.xsd">
+  <Description>
+    <MeasurementUnit>pixel</MeasurementUnit>
+    <sourceImageInformation>
+      <fileName>/home/user/Ancient-OCR/data/book_IbnFaqihHamadhani.Buldan/7_final/b_000410.png</fileName>
+    </sourceImageInformation>
+  </Description>
+  <Layout>
+    <Page WIDTH="2977" HEIGHT="142" PHYSICAL_IMG_NR="1" ID="page1">
+      <PrintSpace HPOS="0" VPOS="0" WIDTH="2977" HEIGHT="142">
+        <TextBlock ID="block1" HPOS="0" VPOS="0" WIDTH="2977" HEIGHT="142">
+          <TextLine ID="line1" HPOS="0" VPOS="0" WIDTH="2977" HEIGHT="142">
+            <String HPOS="0" VPOS="0" WIDTH="2977" HEIGHT="142" CONTENT="إلى موسى بن نصير - وكان عامله على المغرب - يأمره بالمسير إليها، ودفع"/>
+          </TextLine>
+        </TextBlock>
+      </PrintSpace>
+    </Page>
+  </Layout>
+</alto>

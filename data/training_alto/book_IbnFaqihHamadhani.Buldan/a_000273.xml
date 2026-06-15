@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alto xmlns="http://www.loc.gov/standards/alto/ns-v4#"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.loc.gov/standards/alto/ns-v4# http://www.loc.gov/standards/alto/v4/alto-4-2.xsd">
+  <Description>
+    <MeasurementUnit>pixel</MeasurementUnit>
+    <sourceImageInformation>
+      <fileName>/home/user/Ancient-OCR/data/book_IbnFaqihHamadhani.Buldan/7_final/a_000273.png</fileName>
+    </sourceImageInformation>
+  </Description>
+  <Layout>
+    <Page WIDTH="2249" HEIGHT="135" PHYSICAL_IMG_NR="1" ID="page1">
+      <PrintSpace HPOS="0" VPOS="0" WIDTH="2249" HEIGHT="135">
+        <TextBlock ID="block1" HPOS="0" VPOS="0" WIDTH="2249" HEIGHT="135">
+          <TextLine ID="line1" HPOS="0" VPOS="0" WIDTH="2249" HEIGHT="135">
+            <String HPOS="0" VPOS="0" WIDTH="2249" HEIGHT="135" CONTENT="ولهم جور وبها يعمل الماورد الجوري وهو النهاية من الماورد."/>
+          </TextLine>
+        </TextBlock>
+      </PrintSpace>
+    </Page>
+  </Layout>
+</alto>

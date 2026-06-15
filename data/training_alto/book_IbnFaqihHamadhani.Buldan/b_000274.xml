@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alto xmlns="http://www.loc.gov/standards/alto/ns-v4#"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.loc.gov/standards/alto/ns-v4# http://www.loc.gov/standards/alto/v4/alto-4-2.xsd">
+  <Description>
+    <MeasurementUnit>pixel</MeasurementUnit>
+    <sourceImageInformation>
+      <fileName>/home/user/Ancient-OCR/data/book_IbnFaqihHamadhani.Buldan/7_final/b_000274.png</fileName>
+    </sourceImageInformation>
+  </Description>
+  <Layout>
+    <Page WIDTH="3004" HEIGHT="175" PHYSICAL_IMG_NR="1" ID="page1">
+      <PrintSpace HPOS="0" VPOS="0" WIDTH="3004" HEIGHT="175">
+        <TextBlock ID="block1" HPOS="0" VPOS="0" WIDTH="3004" HEIGHT="175">
+          <TextLine ID="line1" HPOS="0" VPOS="0" WIDTH="3004" HEIGHT="175">
+            <String HPOS="0" VPOS="0" WIDTH="3004" HEIGHT="175" CONTENT="علي (1) قال: أخبرنا مشايخنا أن إدريس بن عبد الله بن حسن الطالبي أفلت من"/>
+          </TextLine>
+        </TextBlock>
+      </PrintSpace>
+    </Page>
+  </Layout>
+</alto>
