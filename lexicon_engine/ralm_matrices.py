@@ -28,6 +28,13 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _ARABIC_RE = re.compile(r'[؀-ۿ]')
+# Alef variant normalization: fold أإآ → ا so w_base keys match root extractor output
+_HAMZA_RE = re.compile(r'[أإآ]')
+
+
+def _normalize_root(root: str) -> str:
+    """Fold alef-hamza variants to bare alef for consistent w_base key lookups."""
+    return _HAMZA_RE.sub('ا', root)
 
 
 def _bw2ar(bw_root: str) -> str | None:
@@ -71,6 +78,7 @@ def build_w_base(lexicon_path: Path, output_path: Path) -> dict[str, float]:
                 ar_root = _bw2ar(bw_root)
                 if not ar_root:
                     continue
+                ar_root = _normalize_root(ar_root)
                 entry_count = len(div.findall('.//entryFree'))
                 if entry_count == 0:
                     entry_count = 1  # count the div itself
@@ -144,8 +152,9 @@ def update_m_domain(
     corrected_root = extract_root(corrected_word)
     if corrected_root is None:
         return matrix
+    corrected_root = _normalize_root(corrected_root)
 
-    context_roots = [r for w in context_words if (r := extract_root(w)) is not None]
+    context_roots = [_normalize_root(r) for w in context_words if (r := extract_root(w)) is not None]
     if not context_roots:
         return matrix
 
@@ -192,7 +201,20 @@ def compute_affinity(
     if root is None:
         return epsilon
 
-    w = w_base.get(root, epsilon)
+    # Normalize hamza variants and look up; for defective roots ending in ء
+    # (e.g. ماء) also try the classical ه-final form (ماه = م-و-ه root family)
+    norm = _normalize_root(root)
+    w = w_base.get(norm, None)
+    if w is None and norm.endswith('ء'):
+        w = w_base.get(norm[:-1] + 'ه', None)
+    if w is not None:
+        # Floor known roots at 0.6: any recognized Arabic root gets base credit;
+        # Lane's raw frequency score (0..1) scales only the top 40% of the range.
+        # Without this, the skewed entry-count distribution makes kraken_conf*w
+        # unable to reach the 0.50 review threshold for most real Arabic words.
+        w = 0.6 + 0.4 * w
+    else:
+        w = epsilon
 
     # M_domain: neutral (1.0) when no domain signal yet
     if not context_roots or root not in m_domain:
