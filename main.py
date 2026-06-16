@@ -12,6 +12,7 @@ from ocr_engine.profile_loader import ProfileManager, OCRProfile
 _ARABIC_RE = re.compile(r'[؀-ۿ]')
 
 _profile_manager: ProfileManager | None = None
+_ralm_oracle = None
 
 
 def get_profile_manager() -> ProfileManager:
@@ -19,6 +20,14 @@ def get_profile_manager() -> ProfileManager:
     if _profile_manager is None:
         _profile_manager = ProfileManager(Path("config/profiles.yaml"))
     return _profile_manager
+
+
+def get_ralm_oracle(cfg):
+    global _ralm_oracle
+    if _ralm_oracle is None:
+        from lexicon_engine.ralm_oracle import RALMOracle
+        _ralm_oracle = RALMOracle(cfg)
+    return _ralm_oracle
 
 
 def _require(module: str) -> Any:
@@ -135,6 +144,15 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None,
                 [r for _, r in region_results], page_index
             )
         all_raw_ocr.append(page_ocr)
+
+        # RALM re-ranking: root-affinity scoring after ensemble, before confidence engine
+        try:
+            _ralm_cfg = getattr(cfg, 'ralm', None)
+            if _ralm_cfg is not None and getattr(_ralm_cfg, 'enabled', False):
+                oracle = get_ralm_oracle(cfg)
+                page_ocr.words = oracle.score_page(page_ocr.words)
+        except Exception as _ralm_exc:
+            log.warning(f"RALM score_page failed (non-fatal): {_ralm_exc}")
 
         # Pre-filter: discard glyph fragments and non-Arabic noise before scoring
         words_raw = list(page_ocr.words)

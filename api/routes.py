@@ -832,6 +832,23 @@ def register_routes(app):
             submitted_at=datetime.now(timezone.utc).isoformat(),
         )
         entry_id = submit(entry)
+
+        # RALM Bayesian update from crowd correction
+        try:
+            from utils.config import get_config as _get_config
+            from main import get_ralm_oracle as _get_ralm_oracle
+            _cfg = _get_config()
+            if getattr(getattr(_cfg, 'ralm', None), 'enabled', False):
+                _oracle = _get_ralm_oracle(_cfg)
+                _oracle.update(
+                    corrected_word=body.corrected_text,
+                    context_words=body.context_words,
+                    user_trust_score=body.user_trust_score,
+                )
+        except Exception as _ralm_exc:
+            import logging as _log
+            _log.getLogger(__name__).warning(f"RALM update failed (non-fatal): {_ralm_exc}")
+
         return CorrectionSubmitResponse(status="stored", entry_id=entry_id)
 
     # ── Training pairs helpers ─────────────────────────────────────────────

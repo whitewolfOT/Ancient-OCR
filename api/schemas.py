@@ -221,6 +221,8 @@ class CorrectionSubmitRequest(BaseModel):
     token_id: str
     corrected_text: str
     original_text: str
+    context_words: List[str] = []
+    user_trust_score: float = 0.5
 
 
 class CorrectionSubmitResponse(BaseModel):
