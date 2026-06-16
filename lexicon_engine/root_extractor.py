@@ -66,7 +66,12 @@ def _tier2_pattern(word: str) -> str | None:
         return None
 
     w = re.sub(r'^ال', '', word)        # definite article
-    w = re.sub(r'^[وفبلكم]', '', w)    # common single-letter prefixes
+
+    # Strip single-letter prefix only when enough letters remain after removal
+    stripped = re.sub(r'^[وفبلكم]', '', w)
+    if len(re.sub(r'[^؀-ۿ]', '', stripped)) >= 3:
+        w = stripped
+
     w = re.sub(r'[هاتونين]+$', '', w)  # common suffixes
     w = re.sub(r'ة$', '', w)           # taa marbuta
 
@@ -99,7 +104,11 @@ def extract_root(word: str, camel_preset: str = "calima-msa-r13") -> str | None:
                 # Analyses are dicts; root key is 'root', value like 'ك.ت.ب' or 'NOAN'
                 root = analyses[0].get('root') if isinstance(analyses[0], dict) else getattr(analyses[0], 'root', None)
                 if root and root != 'NOAN':
-                    return root.replace('.', '')  # strip dot-notation separators
+                    # Strip dot-notation separators and weak-consonant placeholders (#)
+                    clean = re.sub(r'[.#]', '', root)
+                    arabic_only = re.sub(r'[^؀-ۿ]', '', clean)
+                    if 3 <= len(arabic_only) <= 4:
+                        return arabic_only
         except Exception:
             pass
 
