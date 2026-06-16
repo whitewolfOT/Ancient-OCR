@@ -227,3 +227,21 @@ lexicon:
     tail_pairs:     0.84
     taa_haa:        0.68
     default:        0.85
+
+ralm:
+  enabled: true
+  thresholds:
+    accept: 0.85
+    review: 0.50
+    # Below review = abstain
+  bayesian:
+    learning_rate: 0.1
+    min_trust_score: 0.3
+    context_window: 2
+  camel:
+    preset: "calima-msa-r13"
+  paths:
+    w_base: "data/ralm/w_base.json"
+    m_domain: "data/ralm/m_domain.json"
+    root_cache: "data/ralm/root_cache.json"
+  fallback_label: "[UNVERIFIED]"

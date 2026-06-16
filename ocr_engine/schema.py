@@ -20,6 +20,9 @@ class WordToken(BaseModel):
     baseline: Optional[List[Tuple[int, int]]] = None
     char_confidences: Optional[List[float]] = None   # per-character, same length as text
     candidates: Optional[List[Dict[str, object]]] = None  # [{text, confidence}, ...]
+    ralm_score: Optional[float] = None              # 0..1 combined affinity score
+    ralm_zone: Optional[str] = None                 # "accept" | "review" | "abstain"
+    ralm_root: Optional[str] = None                 # extracted root (for debugging)
 
 
 class OCRResult(BaseModel):

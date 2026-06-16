@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LexiconEntry(BaseModel):
@@ -47,6 +47,16 @@ class TokenState(BaseModel):
     page_index: int = 0
     line_id: Optional[str] = None                     # Kraken line UUID (None for other backends)
     baseline: Optional[List[Tuple[int, int]]] = None  # Kraken baseline points, page-space
+    ralm_zone: Optional[str] = None                   # propagated from WordToken
+    ralm_score: Optional[float] = None
+
+    @property
+    def needs_review(self) -> bool:
+        """Token requires human review if decision is uncertain/review_required OR RALM flagged it."""
+        return (
+            self.decision in ("uncertain", "review_required")
+            or self.ralm_zone in ("review", "abstain")
+        )
 
 
 class FeedbackEntry(BaseModel):
