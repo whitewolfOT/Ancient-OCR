@@ -43,6 +43,8 @@ def build_debug(token_states: list, raw_ocr: list) -> dict:
             "bbox": list(ts.bbox) if ts.bbox else None,
             "page_index": ts.page_index,
             "candidates": candidates_trace,
+            "ralm_zone": ts.ralm_zone,
+            "ralm_score": ts.ralm_score,
         })
 
     raw_ocr_trace = []

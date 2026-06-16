@@ -220,6 +220,8 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None,
                             reason_code="stopword_phrase",
                             bbox=pt.bbox,
                             page_index=page_index,
+                            ralm_zone=getattr(pt, 'ralm_zone', None),
+                            ralm_score=getattr(pt, 'ralm_score', None),
                         ))
                     i += window
                     phrase_consumed = True
@@ -241,6 +243,8 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None,
                     reason_code="stopword",
                     bbox=word_token.bbox,
                     page_index=page_index,
+                    ralm_zone=getattr(word_token, 'ralm_zone', None),
+                    ralm_score=getattr(word_token, 'ralm_score', None),
                 ))
                 i += 1
                 continue
@@ -261,6 +265,8 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None,
                     reason_code="ocr_confident",
                     bbox=word_token.bbox,
                     page_index=page_index,
+                    ralm_zone=getattr(word_token, 'ralm_zone', None),
+                    ralm_score=getattr(word_token, 'ralm_score', None),
                 ))
                 i += 1
                 continue
@@ -302,6 +308,8 @@ def run_pipeline(pages: list, mode: str = "clean", cfg=None,
                 reason_code=reason_code,
                 bbox=word_token.bbox,
                 page_index=page_index,
+                ralm_zone=getattr(word_token, 'ralm_zone', None),
+                ralm_score=getattr(word_token, 'ralm_score', None),
             )
             all_token_states.append(token_state)
             i += 1

@@ -85,6 +85,8 @@ def build_token_state(
     page_index: int = 0,
     line_id: Optional[str] = None,
     baseline: Optional[List[Tuple[int, int]]] = None,
+    ralm_zone: Optional[str] = None,
+    ralm_score: Optional[float] = None,
 ) -> TokenState:
     sources = list({e.source for c in candidates for e in c.lexicon_entries})
     return TokenState(
@@ -101,4 +103,6 @@ def build_token_state(
         page_index=page_index,
         line_id=line_id,
         baseline=baseline,
+        ralm_zone=ralm_zone,
+        ralm_score=ralm_score,
     )
