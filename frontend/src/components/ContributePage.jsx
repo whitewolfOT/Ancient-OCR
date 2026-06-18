@@ -114,7 +114,10 @@ export default function ContributePage() {
 
         {!loading && word && !word.done && (
           <div className="mt-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-center rounded border border-gray-200 bg-gray-100 p-3" style={{ minHeight: 120 }}>
+            <div
+              className="flex items-center justify-center rounded border border-gray-200 bg-gray-100 p-3"
+              style={{ overflow: 'hidden', width: '100%', minHeight: 160 }}
+            >
               {word.image_b64 ? (
                 <img
                   src={`data:image/png;base64,${word.image_b64}`}

@@ -66,6 +66,7 @@ export default function ImportView({ onBack, onNavigateLineReview }) {
   const [uploading, setUploading]        = useState(false)
   const [segmenting, setSegmenting]      = useState(false)
   const [accepting, setAccepting]        = useState(false)
+  const [acceptDone, setAcceptDone]      = useState(false)
   const [toast, setToast]                = useState(null)   // { text, kind, action }
   const [scale, setScale]                = useState({ x: 1, y: 1 })
   const [canvasSize, setCanvasSize]      = useState({ w: 1, h: 1 })
@@ -121,6 +122,13 @@ export default function ImportView({ onBack, onNavigateLineReview }) {
     const t = setTimeout(() => setToast(null), 6000)
     return () => clearTimeout(t)
   }, [toast])
+
+  // ── "✓ Done" auto-dismiss (brief confirmation before the toast takes over) ──
+  useEffect(() => {
+    if (!acceptDone) return
+    const t = setTimeout(() => setAcceptDone(false), 1500)
+    return () => clearTimeout(t)
+  }, [acceptDone])
 
   // ── Upload ────────────────────────────────────────────────────────────────
   async function handleFilesSelected(e) {
@@ -198,6 +206,7 @@ export default function ImportView({ onBack, onNavigateLineReview }) {
       if (!r.ok) throw new Error('accept failed')
       const data = await r.json()
       setPageStatus(prev => ({ ...prev, [currentPageId]: 'accepted' }))
+      setAcceptDone(true)
       setToast({ text: `${data.saved_lines} lines queued in Line Review`, kind: 'success', action: 'line-review' })
     } catch {
       setToast({ text: 'Accept failed', kind: 'error' })
@@ -468,7 +477,7 @@ export default function ImportView({ onBack, onNavigateLineReview }) {
                     disabled={accepting || lines.length === 0}
                     className="rounded bg-blue-600 px-2.5 py-1 text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    Accept all
+                    {accepting ? 'Saving lines & running OCR…' : acceptDone ? '✓ Done' : 'Accept all'}
                   </button>
                   <button
                     onClick={() => handleAccept(lines.filter(l => l._status === 'accepted'))}
