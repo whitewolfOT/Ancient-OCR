@@ -37,3 +37,5 @@ data/lines/**/*.png
 data/corrections/
 data/corrections_import/
 data/ralm/root_cache.json
+data/import/
+data/contribute_crops/

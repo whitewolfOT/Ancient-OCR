@@ -272,3 +272,43 @@ class LineSaveResponse(BaseModel):
     saved: bool
     total_corrected: int
     total_lines: int
+
+
+# ── Manuscript import workflow ─────────────────────────────────────────────
+
+class ImportUploadResponse(BaseModel):
+    session_id: str
+    page_count: int
+    page_ids: List[str]
+
+
+class ImportSessionInfo(BaseModel):
+    session_id: str
+    page_count: int
+
+
+class ImportSessionsResponse(BaseModel):
+    sessions: List[ImportSessionInfo]
+
+
+class ImportLineItem(BaseModel):
+    id: str
+    bbox: List[int]                     # [x, y, w, h]
+    baseline: List[List[int]] = []      # [[x, y], ...]
+    boundary: List[List[int]] = []      # [[x, y], ...]
+
+
+class ImportSegmentResponse(BaseModel):
+    page_id: str
+    line_count: int
+    lines: List[ImportLineItem]
+
+
+class ImportAcceptLinesRequest(BaseModel):
+    lines: List[ImportLineItem]
+    profile_name: str = "default"
+
+
+class ImportAcceptLinesResponse(BaseModel):
+    saved_lines: int
+    page_id: str

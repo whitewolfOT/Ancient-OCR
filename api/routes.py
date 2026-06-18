@@ -22,6 +22,9 @@ _MANIFEST  = _PAIRS_DIR / "manifest.json"
 _LINES_DIR       = Path("data/lines")
 _CORRECTIONS_DIR = Path("data/corrections")
 
+# Manuscript import workflow storage — module-level so tests can monkeypatch it
+_IMPORT_DIR = Path("data/import")
+
 # Module-level FastAPI + schema imports so ForwardRef resolution works with
 # `from __future__ import annotations` (PEP 563). FastAPI resolves body
 # annotations via typing.get_type_hints(func), which looks up names in
@@ -45,6 +48,9 @@ try:
         CorrectionSubmitRequest, CorrectionSubmitResponse,
         LineGroundTruthRequest, LineGroundTruthResponse, LineGroundTruthItem,
         LineRecord, LinesPageResponse, LineSaveRequest, LineSaveResponse,
+        ImportUploadResponse, ImportSessionInfo, ImportSessionsResponse,
+        ImportLineItem, ImportSegmentResponse,
+        ImportAcceptLinesRequest, ImportAcceptLinesResponse,
     )
 except ImportError:
     pass
@@ -59,6 +65,47 @@ def _get_profile_mgr():
         from ocr_engine.profile_loader import ProfileManager
         _profile_mgr = ProfileManager(Path("config/profiles.yaml"))
     return _profile_mgr
+
+
+# Lazy Kraken segmentation model singleton, dedicated to /api/import/segment.
+# Always uses the staged muharaf_seg_best.mlmodel, independent of profile.seg_model.
+_import_seg_model = None
+
+
+def _get_import_seg_model():
+    global _import_seg_model
+    if _import_seg_model is None:
+        from kraken.lib import vgsl as kraken_vgsl
+        model_path = Path("models/kraken/muharaf_seg_best.mlmodel")
+        _import_seg_model = kraken_vgsl.TorchVGSLModel.load_model(str(model_path))
+    return _import_seg_model
+
+
+def _run_blla_segment(image, rtl: bool = True) -> list:
+    """Run Kraken blla segmentation. Returns line dicts with id/bbox/baseline/boundary."""
+    import cv2 as _cv2
+    from kraken import blla
+    from PIL import Image as PILImage
+
+    pil_img = PILImage.fromarray(_cv2.cvtColor(image, _cv2.COLOR_BGR2RGB))
+    text_dir = "horizontal-rl" if rtl else "horizontal-lr"
+    seg = blla.segment(pil_img, model=_get_import_seg_model(), text_direction=text_dir)
+
+    lines = []
+    for i, line in enumerate(seg.lines):
+        boundary = [[int(p[0]), int(p[1])] for p in (getattr(line, "boundary", None) or [])]
+        baseline = [[int(p[0]), int(p[1])] for p in (getattr(line, "baseline", None) or [])]
+        if not boundary:
+            continue
+        bxs = [p[0] for p in boundary]
+        bys = [p[1] for p in boundary]
+        lines.append({
+            "id": f"line_{i:03d}",
+            "bbox": [min(bxs), min(bys), max(bxs) - min(bxs), max(bys) - min(bys)],
+            "baseline": baseline,
+            "boundary": boundary,
+        })
+    return lines
 
 
 def register_routes(app):
@@ -80,6 +127,9 @@ def register_routes(app):
         GroundTruthRequest, GroundTruthResponse, GroundTruthData,
         ApplyClusterSettingsRequest, ApplyClusterSettingsResponse,
         OCRResultResponse, OCRTokenResult,
+        ImportUploadResponse, ImportSessionInfo, ImportSessionsResponse,
+        ImportLineItem, ImportSegmentResponse,
+        ImportAcceptLinesRequest, ImportAcceptLinesResponse,
     )
 
     router = APIRouter()
@@ -1194,5 +1244,269 @@ def register_routes(app):
             "total_lines":     grand_total,
             "pages":           pages_out,
         }
+
+    # ── Manuscript import workflow ──────────────────────────────────────────
+
+    def _import_session_paths(session_id: str) -> dict:
+        base = _self_mod._IMPORT_DIR / session_id
+        return {
+            "base": base,
+            "pages": base / "pages",
+            "segments": base / "segments",
+            "accepted": base / "accepted",
+        }
+
+    def _assign_tokens_to_lines(tokens: list, line_bboxes: list) -> dict:
+        """Assign each OCR token to the best-overlapping line bbox by y-overlap."""
+        assignments: dict = {i: [] for i in range(len(line_bboxes))}
+        if not line_bboxes:
+            return assignments
+        for tok in tokens:
+            tx, ty, tw, th = tok["bbox"]
+            best_i, best_overlap = 0, None
+            for i, bbox in enumerate(line_bboxes):
+                ly, lh = bbox[1], bbox[3]
+                overlap = min(ty + th, ly + lh) - max(ty, ly)
+                if best_overlap is None or overlap > best_overlap:
+                    best_overlap = overlap
+                    best_i = i
+            assignments[best_i].append(tok)
+        return assignments
+
+    def _line_text_rtl(tokens: list) -> str:
+        sorted_toks = sorted(tokens, key=lambda t: -t["bbox"][0])
+        return " ".join(t["text"] for t in sorted_toks if t.get("text", "").strip())
+
+    def _mean_confidence(tokens: list) -> float:
+        confs = [t["confidence"] for t in tokens if "confidence" in t]
+        return round(float(sum(confs) / len(confs)), 4) if confs else 0.0
+
+    def _crop_line_region(img, boundary: list, padding: int = 4):
+        import cv2 as _cv2
+        import numpy as _np
+        pts = _np.array(boundary, dtype=_np.int32)
+        x, y, w, h = _cv2.boundingRect(pts)
+        h_img, w_img = img.shape[:2]
+        x1 = max(0, x - padding)
+        y1 = max(0, y - padding)
+        x2 = min(w_img, x + w + padding)
+        y2 = min(h_img, y + h + padding)
+        crop = img[y1:y2, x1:x2].copy()
+        mask = _np.zeros(img.shape[:2], dtype=_np.uint8)
+        shifted = pts - _np.array([x1, y1])
+        _cv2.fillPoly(mask[y1:y2, x1:x2], [shifted], 255)
+        result = _np.full_like(crop, 255)
+        result[mask[y1:y2, x1:x2] > 0] = crop[mask[y1:y2, x1:x2] > 0]
+        return result
+
+    # ── POST /api/import/upload-pdf ─────────────────────────────────────────
+    @router.post("/api/import/upload-pdf", response_model=ImportUploadResponse)
+    async def import_upload_pdf(
+        file: UploadFile = File(...),
+        profile_name: str = Form("default"),
+    ):
+        from starlette.concurrency import run_in_threadpool
+        from scripts.extract_pdf_pages import extract_pdf_pages
+
+        session_id = uuid.uuid4().hex[:12]
+        paths = _import_session_paths(session_id)
+        paths["pages"].mkdir(parents=True, exist_ok=True)
+
+        contents = await file.read()
+        tmp_path = Path(tempfile.mktemp(suffix=".pdf"))
+        tmp_path.write_bytes(contents)
+
+        try:
+            written = await run_in_threadpool(
+                extract_pdf_pages,
+                pdf_path=tmp_path,
+                output_dir=paths["pages"],
+                prefix="page",
+                dpi=300,
+            )
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
+        page_ids = [p.stem for p in written]
+        return ImportUploadResponse(session_id=session_id, page_count=len(page_ids), page_ids=page_ids)
+
+    # ── POST /api/import/upload-images ──────────────────────────────────────
+    @router.post("/api/import/upload-images", response_model=ImportUploadResponse)
+    async def import_upload_images(
+        files: list[UploadFile] = File(...),
+        session_id: str = Form(None),
+    ):
+        import cv2 as _cv2
+        import numpy as _np
+
+        if not session_id:
+            session_id = uuid.uuid4().hex[:12]
+        paths = _import_session_paths(session_id)
+        paths["pages"].mkdir(parents=True, exist_ok=True)
+
+        next_num = len(list(paths["pages"].glob("page_*.jpg"))) + 1
+        page_ids = []
+        for f in files:
+            contents = await f.read()
+            img = _cv2.imdecode(_np.frombuffer(contents, _np.uint8), _cv2.IMREAD_COLOR)
+            if img is None:
+                continue
+            out_path = paths["pages"] / f"page_{next_num:04d}.jpg"
+            _cv2.imwrite(str(out_path), img)
+            page_ids.append(out_path.stem)
+            next_num += 1
+
+        total_pages = len(list(paths["pages"].glob("page_*.jpg")))
+        return ImportUploadResponse(session_id=session_id, page_count=total_pages, page_ids=page_ids)
+
+    # ── GET /api/import/sessions ────────────────────────────────────────────
+    @router.get("/api/import/sessions", response_model=ImportSessionsResponse)
+    def import_list_sessions():
+        sessions = []
+        if _self_mod._IMPORT_DIR.exists():
+            for d in sorted(_self_mod._IMPORT_DIR.iterdir()):
+                if not d.is_dir():
+                    continue
+                pages_dir = d / "pages"
+                count = len(list(pages_dir.glob("page_*.jpg"))) if pages_dir.exists() else 0
+                sessions.append(ImportSessionInfo(session_id=d.name, page_count=count))
+        return ImportSessionsResponse(sessions=sessions)
+
+    # ── GET /api/import/page-image/{session_id}/{page_id} ──────────────────
+    @router.get("/api/import/page-image/{session_id}/{page_id}")
+    def import_page_image(session_id: str, page_id: str, preprocessed: bool = False, profile: str = "default"):
+        import cv2 as _cv2
+        from fastapi.responses import FileResponse, Response
+
+        paths = _import_session_paths(session_id)
+        img_path = paths["pages"] / f"{page_id}.jpg"
+        if not img_path.exists():
+            raise HTTPException(status_code=404, detail="Page not found")
+
+        if not preprocessed:
+            return FileResponse(str(img_path), media_type="image/jpeg")
+
+        from preprocessing.adjustments import apply_profile_adjustments
+
+        img = _cv2.imread(str(img_path))
+        if img is None:
+            raise HTTPException(status_code=400, detail="Could not decode image")
+        prof = _get_profile_mgr().get(profile)
+        processed = apply_profile_adjustments(img, prof.preprocessing)
+        _, buf = _cv2.imencode(".jpg", processed, [_cv2.IMWRITE_JPEG_QUALITY, 90])
+        return Response(content=bytes(buf), media_type="image/jpeg")
+
+    # ── POST /api/import/segment/{session_id}/{page_id} ────────────────────
+    @router.post("/api/import/segment/{session_id}/{page_id}", response_model=ImportSegmentResponse)
+    def import_segment_page(session_id: str, page_id: str, profile: str = "default"):
+        import json as _j
+        import cv2 as _cv2
+
+        paths = _import_session_paths(session_id)
+        img_path = paths["pages"] / f"{page_id}.jpg"
+        if not img_path.exists():
+            raise HTTPException(status_code=404, detail="Page not found")
+
+        from preprocessing.adjustments import apply_profile_adjustments
+
+        img = _cv2.imread(str(img_path))
+        if img is None:
+            raise HTTPException(status_code=400, detail="Could not decode image")
+        prof = _get_profile_mgr().get(profile)
+        processed = apply_profile_adjustments(img, prof.preprocessing)
+
+        lines = _self_mod._run_blla_segment(processed, rtl=prof.rtl)
+
+        paths["segments"].mkdir(parents=True, exist_ok=True)
+        payload = {"page_id": page_id, "line_count": len(lines), "lines": lines}
+        (paths["segments"] / f"{page_id}.json").write_text(
+            _j.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        return ImportSegmentResponse(**payload)
+
+    # ── GET /api/import/segments/{session_id}/{page_id} ────────────────────
+    @router.get("/api/import/segments/{session_id}/{page_id}", response_model=ImportSegmentResponse)
+    def import_get_segments(session_id: str, page_id: str):
+        import json as _j
+
+        paths = _import_session_paths(session_id)
+        seg_path = paths["segments"] / f"{page_id}.json"
+        if not seg_path.exists():
+            raise HTTPException(status_code=404, detail="Page not segmented yet")
+        return ImportSegmentResponse(**_j.loads(seg_path.read_text(encoding="utf-8")))
+
+    # ── POST /api/import/accept-lines/{session_id}/{page_id} ───────────────
+    @router.post("/api/import/accept-lines/{session_id}/{page_id}", response_model=ImportAcceptLinesResponse)
+    def import_accept_lines(session_id: str, page_id: str, body: ImportAcceptLinesRequest):
+        import json as _j
+        import cv2 as _cv2
+
+        paths = _import_session_paths(session_id)
+        img_path = paths["pages"] / f"{page_id}.jpg"
+        if not img_path.exists():
+            raise HTTPException(status_code=404, detail="Page not found")
+
+        raw_img = _cv2.imread(str(img_path))
+        if raw_img is None:
+            raise HTTPException(status_code=400, detail="Could not decode image")
+        h_img, w_img = raw_img.shape[:2]
+
+        profile = _get_profile_mgr().get(body.profile_name)
+        from preprocessing.adjustments import apply_profile_adjustments
+        preprocessed_img = apply_profile_adjustments(raw_img, profile.preprocessing)
+
+        from ocr_engine.kraken_backend import KrakenBackend
+        backend = KrakenBackend(profile=profile)
+        ocr_result = backend.process_image(preprocessed_img, page_index=0)
+        ocr_tokens = [
+            {"text": w.text, "bbox": list(w.bbox), "confidence": w.confidence}
+            for w in ocr_result.words
+        ]
+
+        line_bboxes = [line.bbox for line in body.lines]
+        token_map = _assign_tokens_to_lines(ocr_tokens, line_bboxes)
+
+        out_dir = _self_mod._LINES_DIR / page_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        line_records = []
+        for i, line in enumerate(body.lines):
+            boundary = line.boundary if line.boundary else [
+                [line.bbox[0], line.bbox[1]],
+                [line.bbox[0] + line.bbox[2], line.bbox[1]],
+                [line.bbox[0] + line.bbox[2], line.bbox[1] + line.bbox[3]],
+                [line.bbox[0], line.bbox[1] + line.bbox[3]],
+            ]
+            crop = _crop_line_region(raw_img, boundary)
+            img_path_out = out_dir / f"line_{i:03d}.png"
+            _cv2.imwrite(str(img_path_out), crop)
+
+            matched = token_map.get(i, [])
+            line_records.append({
+                "index": i,
+                "image_path": str(img_path_out),
+                "ocr_text": _line_text_rtl(matched),
+                "baseline": line.baseline,
+                "bbox": line.bbox,
+                "confidence": _mean_confidence(matched),
+            })
+
+        manifest = {
+            "page": page_id,
+            "original_size": [w_img, h_img],
+            "seg_source": "import",
+            "lines": line_records,
+        }
+        (out_dir / "lines.json").write_text(
+            _j.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+        paths["accepted"].mkdir(parents=True, exist_ok=True)
+        (paths["accepted"] / f"{page_id}.json").write_text(
+            _j.dumps({"lines": [l.model_dump() for l in body.lines]}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        return ImportAcceptLinesResponse(saved_lines=len(line_records), page_id=page_id)
 
     app.include_router(router)
