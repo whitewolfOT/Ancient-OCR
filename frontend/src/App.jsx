@@ -10,9 +10,21 @@ import ProfileSelector from './components/ProfileSelector'
 import ReviewTab from './components/ReviewTab'
 import AnnotationView from './components/AnnotationView'
 import LineReviewView from './components/LineReviewView'
+import ImportView from './components/ImportView'
+import ContributePage from './components/ContributePage'
 import { runPageOCR } from './api/client'
 
 export default function App() {
+  // /contribute is a standalone public page — no auth, no workspace state.
+  // Routed here (rather than inside MainApp) so MainApp's hooks are always
+  // called unconditionally on every render.
+  if (window.location.pathname === '/contribute') {
+    return <ContributePage />
+  }
+  return <MainApp />
+}
+
+function MainApp() {
   const [doc, setDoc] = useState(null)               // { docId, clusters } | null
   const [selectedPageId, setSelectedPageId] = useState(null)
   const [selectedClusterId, setSelectedClusterId] = useState(null)
@@ -20,7 +32,7 @@ export default function App() {
   const [ocrTokens, setOcrTokens] = useState(null)   // null | token[]
   const [ocrRunning, setOcrRunning] = useState(false)
   const [profileName, setProfileName] = useState('default')
-  const [activeView, setActiveView] = useState('workspace') // 'workspace' | 'review' | 'annotate' | 'line-review'
+  const [activeView, setActiveView] = useState('workspace') // 'workspace' | 'review' | 'annotate' | 'line-review' | 'import'
   // Incrementing this remounts PageSidebar, re-fetching page list with updated status icons
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0)
   const [correctionSummary, setCorrectionSummary] = useState(null)
@@ -66,6 +78,16 @@ export default function App() {
     } finally {
       setOcrRunning(false)
     }
+  }
+
+  // ── Import view ──────────────────────────────────────────────────────────
+  if (activeView === 'import') {
+    return (
+      <ImportView
+        onBack={() => setActiveView('workspace')}
+        onNavigateLineReview={() => setActiveView('line-review')}
+      />
+    )
   }
 
   // ── Line review view ─────────────────────────────────────────────────────
@@ -131,6 +153,12 @@ export default function App() {
             >
               📝 Correct Lines →
             </button>
+            <button
+              onClick={() => setActiveView('import')}
+              className="text-sm text-indigo-600 hover:underline"
+            >
+              📥 Import →
+            </button>
           </div>
           {/* Resume correction banner */}
           {correctionSummary && correctionSummary.total_corrected > 0 && (
@@ -176,6 +204,12 @@ export default function App() {
             className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
           >
             📝 Correct Lines
+          </button>
+          <button
+            onClick={() => setActiveView('import')}
+            className="rounded bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+          >
+            📥 Import
           </button>
         </div>
       </div>

@@ -1,0 +1,16 @@
+{
+  "seeds": [
+    {"word_id": "1.jpg_0", "correct_text": "من"},
+    {"word_id": "1.jpg_1", "correct_text": "الخضرة"},
+    {"word_id": "2.jpg_0", "correct_text": "من"},
+    {"word_id": "2.jpg_1", "correct_text": "وجه"},
+    {"word_id": "3.jpg_1", "correct_text": "اذا"},
+    {"word_id": "3.jpg_2", "correct_text": "نتا"},
+    {"word_id": "4.jpg_1", "correct_text": "داصير"},
+    {"word_id": "4.jpg_4", "correct_text": "طرايق"},
+    {"word_id": "5.jpg_0", "correct_text": "سمر"},
+    {"word_id": "5.jpg_1", "correct_text": "الله"},
+    {"word_id": "6.jpg_0", "correct_text": "واتفق"},
+    {"word_id": "6.jpg_2", "correct_text": "من"}
+  ]
+}

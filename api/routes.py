@@ -25,6 +25,14 @@ _CORRECTIONS_DIR = Path("data/corrections")
 # Manuscript import workflow storage — module-level so tests can monkeypatch it
 _IMPORT_DIR = Path("data/import")
 
+# Word contribution workflow storage — module-level so tests can monkeypatch it
+_RESULTS_JSON              = Path("data/ocr_results/results.json")
+_TEST_IMAGES_DIR           = Path("data/test_images")
+_CONTRIBUTE_CROPS_DIR      = Path("data/contribute_crops")
+_CONTRIBUTIONS_DIR         = Path("data/contributions")
+_CONTRIBUTE_SEEDS_PATH     = Path("data/contribute_seeds.json")
+_CONTRIBUTE_SESSIONS_PATH  = Path("data/contribute_sessions.json")
+
 # Module-level FastAPI + schema imports so ForwardRef resolution works with
 # `from __future__ import annotations` (PEP 563). FastAPI resolves body
 # annotations via typing.get_type_hints(func), which looks up names in
@@ -51,6 +59,8 @@ try:
         ImportUploadResponse, ImportSessionInfo, ImportSessionsResponse,
         ImportLineItem, ImportSegmentResponse,
         ImportAcceptLinesRequest, ImportAcceptLinesResponse,
+        ContributeWordResponse, ContributeSubmitRequest, ContributeSubmitResponse,
+        ContributorInfo, ContributeStatsResponse,
     )
 except ImportError:
     pass
@@ -130,6 +140,8 @@ def register_routes(app):
         ImportUploadResponse, ImportSessionInfo, ImportSessionsResponse,
         ImportLineItem, ImportSegmentResponse,
         ImportAcceptLinesRequest, ImportAcceptLinesResponse,
+        ContributeWordResponse, ContributeSubmitRequest, ContributeSubmitResponse,
+        ContributorInfo, ContributeStatsResponse,
     )
 
     router = APIRouter()
@@ -1508,5 +1520,254 @@ def register_routes(app):
         )
 
         return ImportAcceptLinesResponse(saved_lines=len(line_records), page_id=page_id)
+
+    # ── Word contribution workflow ──────────────────────────────────────────
+    # Single shared queue across all contributors: low-confidence "abstain"
+    # tokens (the words the OCR pipeline is least sure about) interleaved with
+    # a handful of high-confidence "seed" tokens whose answer is already known.
+    # Seed answers are indistinguishable from real ones in the UI — that's
+    # what makes them useful for silently calibrating a contributor's
+    # trust score (CLAUDE.md / RALM design).
+
+    def _load_seed_map() -> dict:
+        import json as _j
+        if not _self_mod._CONTRIBUTE_SEEDS_PATH.exists():
+            return {}
+        try:
+            data = _j.loads(_self_mod._CONTRIBUTE_SEEDS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+        return {s["word_id"]: s["correct_text"] for s in data.get("seeds", [])}
+
+    def _build_contribute_queue() -> list:
+        """Ordered list of word entries: abstain tokens with seed tokens
+        interleaved roughly every 9th slot. Recomputed per call (results.json
+        is small and this keeps test monkeypatching of the data paths simple)."""
+        import json as _j
+
+        if not _self_mod._RESULTS_JSON.exists():
+            return []
+        try:
+            data = _j.loads(_self_mod._RESULTS_JSON.read_text(encoding="utf-8"))
+        except Exception:
+            return []
+
+        from utils.config import get_config as _get_config
+        cfg = _get_config()
+        ralm_cfg = getattr(cfg, "ralm", None)
+        thresholds = getattr(ralm_cfg, "thresholds", None)
+        review_thresh = float(getattr(thresholds, "review", 0.50))
+        accept_thresh = float(getattr(thresholds, "accept", 0.85))
+
+        seed_map = _load_seed_map()
+        abstain_entries, seed_entries = [], []
+        for page in data.get("pages", []):
+            page_id = page.get("filename", "")
+            tokens = page.get("tokens", [])
+            for idx, tok in enumerate(tokens):
+                text = (tok.get("text") or "").strip()
+                if not text:
+                    continue
+                word_id = f"{page_id}_{idx}"
+                zone = tok.get("ralm_zone")
+                conf = tok.get("confidence", 1.0)
+                entry = {
+                    "word_id": word_id,
+                    "page_id": page_id,
+                    "bbox": tok.get("bbox", [0, 0, 0, 0]),
+                    "text": text,
+                    "context_before": tokens[idx - 1].get("text", "") if idx > 0 else "",
+                    "context_after": tokens[idx + 1].get("text", "") if idx + 1 < len(tokens) else "",
+                }
+                if word_id in seed_map:
+                    entry["is_seed"] = True
+                    entry["correct_text"] = seed_map[word_id]
+                    seed_entries.append(entry)
+                elif zone == "abstain" or (zone is None and conf < review_thresh):
+                    entry["is_seed"] = False
+                    abstain_entries.append(entry)
+                elif zone == "accept" or (zone is None and conf >= accept_thresh):
+                    pass  # eligible to be a seed, but not selected in contribute_seeds.json
+
+        queue = list(abstain_entries)
+        if seed_entries:
+            step = max(1, len(queue) // len(seed_entries))
+            for i, seed in enumerate(seed_entries):
+                queue.insert(min(len(queue), (i + 1) * step), seed)
+        return queue
+
+    def _done_word_ids() -> set:
+        if not _self_mod._CONTRIBUTIONS_DIR.exists():
+            return set()
+        return {p.stem for p in _self_mod._CONTRIBUTIONS_DIR.glob("*.json")}
+
+    def _load_sessions() -> dict:
+        import json as _j
+        if not _self_mod._CONTRIBUTE_SESSIONS_PATH.exists():
+            return {}
+        try:
+            return _j.loads(_self_mod._CONTRIBUTE_SESSIONS_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    def _save_sessions(sessions: dict) -> None:
+        import json as _j
+        _self_mod._CONTRIBUTE_SESSIONS_PATH.write_text(
+            _j.dumps(sessions, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+    def _session_stats(session_token: str, sessions: dict) -> tuple:
+        rec = sessions.get(session_token, {})
+        submitted = rec.get("words_submitted", 0)
+        accepted = rec.get("words_accepted", 0)
+        accuracy = (accepted / submitted) if submitted else None
+        return submitted, accuracy
+
+    def _crop_word_b64(page_id: str, bbox: list) -> str:
+        """Crop a word region (with padding, handling zero-height bboxes) and
+        cache it under data/contribute_crops/. Returns a base64 PNG string."""
+        import cv2 as _cv2
+
+        cache_path = _self_mod._CONTRIBUTE_CROPS_DIR / f"{page_id}_{bbox[0]}_{bbox[1]}.png"
+        if cache_path.exists():
+            return base64.b64encode(cache_path.read_bytes()).decode()
+
+        img_path = _self_mod._TEST_IMAGES_DIR / page_id
+        img = _cv2.imread(str(img_path))
+        if img is None:
+            return ""
+        h_img, w_img = img.shape[:2]
+        x, y, w, h = bbox
+        if h < 20:
+            y1, y2 = y - 20, y + 50
+        else:
+            y1, y2 = y - 10, y + h + 10
+        x1, x2 = x - 10, x + w + 10
+        x1, y1 = max(0, x1), max(0, y1)
+        x2, y2 = min(w_img, x2), min(h_img, y2)
+        crop = img[y1:y2, x1:x2]
+        if crop.size == 0:
+            return ""
+        _self_mod._CONTRIBUTE_CROPS_DIR.mkdir(parents=True, exist_ok=True)
+        _cv2.imwrite(str(cache_path), crop)
+        ok, buf = _cv2.imencode(".png", crop)
+        return base64.b64encode(bytes(buf)).decode() if ok else ""
+
+    # ── GET /api/contribute/next-word ───────────────────────────────────────
+    @router.get("/api/contribute/next-word", response_model=ContributeWordResponse)
+    def contribute_next_word(session_token: str = ""):
+        queue = _build_contribute_queue()
+        done = _done_word_ids()
+        remaining = [e for e in queue if e["word_id"] not in done]
+
+        sessions = _load_sessions()
+        submitted, accuracy = _session_stats(session_token, sessions) if session_token else (0, None)
+
+        if not remaining:
+            return ContributeWordResponse(
+                done=True, queue_total=len(queue),
+                contributor_words_submitted=submitted, contributor_accuracy=accuracy,
+            )
+
+        entry = remaining[0]
+        position = queue.index(entry) + 1
+        image_b64 = _crop_word_b64(entry["page_id"], entry["bbox"])
+        return ContributeWordResponse(
+            word_id=entry["word_id"],
+            image_b64=image_b64,
+            ocr_guess=entry["text"],
+            context_before=entry["context_before"],
+            context_after=entry["context_after"],
+            queue_position=position,
+            queue_total=len(queue),
+            done=False,
+            contributor_words_submitted=submitted,
+            contributor_accuracy=accuracy,
+        )
+
+    # ── POST /api/contribute/submit ─────────────────────────────────────────
+    @router.post("/api/contribute/submit", response_model=ContributeSubmitResponse)
+    def contribute_submit(body: ContributeSubmitRequest):
+        import json as _j
+        from datetime import datetime as _dt, timezone as _tz
+
+        queue = _build_contribute_queue()
+        entry = next((e for e in queue if e["word_id"] == body.word_id), None)
+        if entry is None:
+            raise HTTPException(status_code=404, detail="Unknown word_id")
+
+        sessions = _load_sessions()
+        rec = sessions.setdefault(body.session_token, {
+            "words_submitted": 0, "words_accepted": 0, "seed_total": 0, "seed_correct": 0,
+        })
+        rec["words_submitted"] += 1
+        if not body.skipped:
+            rec["words_accepted"] += 1
+
+        is_seed = entry.get("is_seed", False)
+        if is_seed and not body.skipped:
+            rec["seed_total"] += 1
+            from normalization.arabic_normalizer import normalize_text
+            given, _ = normalize_text(body.transcription)
+            correct, _ = normalize_text(entry["correct_text"])
+            if given.strip() == correct.strip():
+                rec["seed_correct"] += 1
+
+        trust_score = (rec["seed_correct"] / rec["seed_total"]) if rec["seed_total"] else 0.5
+
+        if not is_seed and not body.skipped:
+            try:
+                from utils.config import get_config as _get_cfg
+                from main import get_ralm_oracle as _get_oracle
+                _cfg = _get_cfg()
+                if getattr(getattr(_cfg, "ralm", None), "enabled", False):
+                    _oracle = _get_oracle(_cfg)
+                    _oracle.update(
+                        corrected_word=body.transcription,
+                        context_words=[entry["context_before"], entry["context_after"]],
+                        user_trust_score=trust_score,
+                    )
+            except Exception as _ralm_exc:
+                log.warning(f"RALM update failed (non-fatal): {_ralm_exc}")
+
+        _self_mod._CONTRIBUTIONS_DIR.mkdir(parents=True, exist_ok=True)
+        (_self_mod._CONTRIBUTIONS_DIR / f"{body.word_id}.json").write_text(
+            _j.dumps({
+                "word_id": body.word_id,
+                "transcription": body.transcription,
+                "skipped": body.skipped,
+                "session_token": body.session_token,
+                "is_seed": is_seed,
+                "submitted_at": _dt.now(_tz.utc).isoformat(),
+            }, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        _save_sessions(sessions)
+
+        done = _done_word_ids()
+        remaining = [e for e in queue if e["word_id"] not in done]
+        next_word_id = remaining[0]["word_id"] if remaining else None
+        submitted, accuracy = _session_stats(body.session_token, sessions)
+        return ContributeSubmitResponse(
+            accepted=True, next_word_id=next_word_id,
+            contributor_words_submitted=submitted, contributor_accuracy=accuracy,
+        )
+
+    # ── GET /api/contribute/stats ────────────────────────────────────────────
+    @router.get("/api/contribute/stats", response_model=ContributeStatsResponse)
+    def contribute_stats():
+        queue = _build_contribute_queue()
+        done = _done_word_ids()
+        sessions = _load_sessions()
+        top = sorted(
+            (ContributorInfo(session_token=tok, words_submitted=rec.get("words_submitted", 0))
+             for tok, rec in sessions.items()),
+            key=lambda c: -c.words_submitted,
+        )[:10]
+        return ContributeStatsResponse(
+            total_contributed=len(done),
+            queue_remaining=len([e for e in queue if e["word_id"] not in done]),
+            top_contributors=top,
+        )
 
     app.include_router(router)

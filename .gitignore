@@ -39,3 +39,5 @@ data/corrections_import/
 data/ralm/root_cache.json
 data/import/
 data/contribute_crops/
+data/contributions/
+data/contribute_sessions.json

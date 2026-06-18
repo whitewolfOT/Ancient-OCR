@@ -312,3 +312,43 @@ class ImportAcceptLinesRequest(BaseModel):
 class ImportAcceptLinesResponse(BaseModel):
     saved_lines: int
     page_id: str
+
+
+# ── Word contribution workflow ─────────────────────────────────────────────
+
+class ContributeWordResponse(BaseModel):
+    word_id: Optional[str] = None
+    image_b64: str = ""
+    ocr_guess: str = ""
+    context_before: str = ""
+    context_after: str = ""
+    queue_position: int = 0
+    queue_total: int = 0
+    done: bool = False                       # true when the queue is empty
+    contributor_words_submitted: int = 0
+    contributor_accuracy: Optional[float] = None
+
+
+class ContributeSubmitRequest(BaseModel):
+    word_id: str
+    transcription: str = ""
+    skipped: bool = False
+    session_token: str
+
+
+class ContributeSubmitResponse(BaseModel):
+    accepted: bool
+    next_word_id: Optional[str] = None
+    contributor_words_submitted: int = 0
+    contributor_accuracy: Optional[float] = None
+
+
+class ContributorInfo(BaseModel):
+    session_token: str
+    words_submitted: int
+
+
+class ContributeStatsResponse(BaseModel):
+    total_contributed: int
+    queue_remaining: int
+    top_contributors: List[ContributorInfo] = []
