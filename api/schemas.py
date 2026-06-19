@@ -274,6 +274,24 @@ class LineSaveResponse(BaseModel):
     total_lines: int
 
 
+class ReplaceLineRequest(BaseModel):
+    old_line_index: int
+    new_bbox: List[int]            # [x, y, w, h]
+    replace_adjacent: bool = False
+
+
+class ReplaceLineNewLine(BaseModel):
+    index: int
+    ocr_text: str
+    confidence: float
+    bbox: List[int]
+
+
+class ReplaceLineResponse(BaseModel):
+    new_line: ReplaceLineNewLine
+    total_lines: int
+
+
 # ── Manuscript import workflow ─────────────────────────────────────────────
 
 class ImportUploadResponse(BaseModel):

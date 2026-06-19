@@ -6,7 +6,10 @@ import io
 import json
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
+import cv2
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -215,3 +218,105 @@ def test_export_skipped_not_included(client, tmp_path):
     r = client.get("/api/corrections/export")
     with zipfile.ZipFile(io.BytesIO(r.content)) as zf:
         assert "1.jpg/line_000.gt.txt" not in zf.namelist()
+
+
+# ── POST /api/lines/{page_id}/replace-line ─────────────────────────────────
+
+def _make_test_image(images_dir: Path, page_id: str, w: int = 400, h: int = 400) -> None:
+    images_dir.mkdir(parents=True, exist_ok=True)
+    img = np.full((h, w, 3), 255, dtype=np.uint8)
+    cv2.imwrite(str(images_dir / page_id), img)
+
+
+def _mock_ocr_result(text: str = "نص جديد"):
+    from ocr_engine.schema import OCRResult, WordToken
+    words = [WordToken(text=text, confidence=0.9, bbox=(0, 0, 50, 20), page_index=0, source="kraken")]
+    return OCRResult(text=text, words=words, confidence=0.9, page_index=0, source="kraken")
+
+
+@pytest.fixture()
+def replace_line_setup(client, tmp_path, monkeypatch):
+    """3 lines at y=0,50,100 (h=40 each); raw page image staged at a tmp dir."""
+    import api.routes as routes_mod
+
+    images_dir = tmp_path / "images"
+    _make_test_image(images_dir, "1.jpg")
+    monkeypatch.setattr(routes_mod, "_TEST_IMAGES_DIR", images_dir)
+
+    lines_dir = tmp_path / "lines"
+    _make_lines_json(lines_dir, "1.jpg", n=3)
+    return client, lines_dir
+
+
+def test_replace_line_creates_new_entry(replace_line_setup):
+    client, lines_dir = replace_line_setup
+
+    with patch("ocr_engine.kraken_backend.KrakenBackend.process_image", return_value=_mock_ocr_result()):
+        r = client.post(
+            "/api/lines/1.jpg/replace-line",
+            json={"old_line_index": 1, "new_bbox": [10, 50, 200, 40], "replace_adjacent": False},
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["new_line"]["ocr_text"] == "نص جديد"
+    assert body["total_lines"] == 3  # one line replaced 1-for-1
+
+    data = json.loads((lines_dir / "1.jpg" / "lines.json").read_text())
+    indices = [ln["index"] for ln in data["lines"]]
+    assert indices == [0, 1, 2]  # sequential, no gaps
+    texts = [ln["ocr_text"] for ln in data["lines"]]
+    assert "نص جديد" in texts
+    assert "نص السطر 0" in texts  # untouched line survives
+    assert "نص السطر 2" in texts
+
+
+def test_replace_line_removes_overlapping(replace_line_setup):
+    client, lines_dir = replace_line_setup
+
+    # Covers y=50..140 -> fully overlaps both line 1 (y50-90) and line 2 (y100-140)
+    with patch("ocr_engine.kraken_backend.KrakenBackend.process_image", return_value=_mock_ocr_result()):
+        r = client.post(
+            "/api/lines/1.jpg/replace-line",
+            json={"old_line_index": 1, "new_bbox": [10, 50, 200, 90], "replace_adjacent": True},
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total_lines"] == 2  # line 0 + the single new merged line
+
+    data = json.loads((lines_dir / "1.jpg" / "lines.json").read_text())
+    texts = [ln["ocr_text"] for ln in data["lines"]]
+    assert texts.count("نص السطر 0") == 1
+    assert "نص السطر 2" not in texts
+    assert "نص السطر 1" not in texts
+    indices = [ln["index"] for ln in data["lines"]]
+    assert indices == [0, 1]
+
+
+def test_replace_adjacent_false_keeps_others(replace_line_setup):
+    client, lines_dir = replace_line_setup
+
+    # Same overlapping new_bbox as above, but replace_adjacent=False this time
+    with patch("ocr_engine.kraken_backend.KrakenBackend.process_image", return_value=_mock_ocr_result()):
+        r = client.post(
+            "/api/lines/1.jpg/replace-line",
+            json={"old_line_index": 1, "new_bbox": [10, 50, 200, 90], "replace_adjacent": False},
+        )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total_lines"] == 3  # line 0 + line 2 (kept despite overlap) + new line
+
+    data = json.loads((lines_dir / "1.jpg" / "lines.json").read_text())
+    texts = [ln["ocr_text"] for ln in data["lines"]]
+    assert "نص السطر 0" in texts
+    assert "نص السطر 2" in texts  # not removed — replace_adjacent was False
+    assert "نص السطر 1" not in texts  # old_line_index is always replaced
+    indices = [ln["index"] for ln in data["lines"]]
+    assert indices == [0, 1, 2]
+
+
+def test_replace_line_missing_page_404(client):
+    r = client.post(
+        "/api/lines/ghost.jpg/replace-line",
+        json={"old_line_index": 0, "new_bbox": [0, 0, 100, 30], "replace_adjacent": False},
+    )
+    assert r.status_code == 404

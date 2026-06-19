@@ -56,6 +56,7 @@ try:
         CorrectionSubmitRequest, CorrectionSubmitResponse,
         LineGroundTruthRequest, LineGroundTruthResponse, LineGroundTruthItem,
         LineRecord, LinesPageResponse, LineSaveRequest, LineSaveResponse,
+        ReplaceLineRequest, ReplaceLineResponse, ReplaceLineNewLine,
         ImportUploadResponse, ImportSessionInfo, ImportSessionsResponse,
         ImportLineItem, ImportSegmentResponse,
         ImportAcceptLinesRequest, ImportAcceptLinesResponse,
@@ -137,6 +138,8 @@ def register_routes(app):
         GroundTruthRequest, GroundTruthResponse, GroundTruthData,
         ApplyClusterSettingsRequest, ApplyClusterSettingsResponse,
         OCRResultResponse, OCRTokenResult,
+        LineRecord, LinesPageResponse, LineSaveRequest, LineSaveResponse,
+        ReplaceLineRequest, ReplaceLineResponse, ReplaceLineNewLine,
         ImportUploadResponse, ImportSessionInfo, ImportSessionsResponse,
         ImportLineItem, ImportSegmentResponse,
         ImportAcceptLinesRequest, ImportAcceptLinesResponse,
@@ -1310,6 +1313,110 @@ def register_routes(app):
         result = _np.full_like(crop, 255)
         result[mask[y1:y2, x1:x2] > 0] = crop[mask[y1:y2, x1:x2] > 0]
         return result
+
+    # ── POST /api/lines/{page_id}/replace-line ──────────────────────────────
+    @router.post("/api/lines/{page_id}/replace-line", response_model=ReplaceLineResponse)
+    def api_replace_line(page_id: str, body: ReplaceLineRequest):
+        import cv2 as _cv2
+        import json as _j
+
+        data = _load_lines_json(page_id)
+        if data is None:
+            raise HTTPException(status_code=404, detail=f"No lines data for '{page_id}'")
+
+        existing = data.get("lines", [])
+        nx, ny, nw, nh = body.new_bbox
+        new_area = nw * nh
+
+        def _overlaps_new_bbox(bbox: list) -> bool:
+            bx, by, bw, bh = bbox
+            ix = max(0, min(bx + bw, nx + nw) - max(bx, nx))
+            iy = max(0, min(by + bh, ny + nh) - max(by, ny))
+            inter = ix * iy
+            if inter <= 0:
+                return False
+            smallest = min(bw * bh, new_area) or 1
+            return (inter / smallest) > 0.5
+
+        remove_indices = {body.old_line_index}
+        if body.replace_adjacent:
+            for ln in existing:
+                if _overlaps_new_bbox(ln.get("bbox", [0, 0, 0, 0])):
+                    remove_indices.add(ln["index"])
+
+        kept = [ln for ln in existing if ln["index"] not in remove_indices]
+
+        out_dir = _self_mod._LINES_DIR / page_id
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        raw_img = _cv2.imread(str(_self_mod._TEST_IMAGES_DIR / page_id))
+        if raw_img is None:
+            raise HTTPException(status_code=400, detail=f"Could not load image for '{page_id}'")
+
+        boundary = [[nx, ny], [nx + nw, ny], [nx + nw, ny + nh], [nx, ny + nh]]
+        new_crop = _crop_line_region(raw_img, boundary)
+
+        ocr_text, confidence = "", 0.0
+        try:
+            from ocr_engine.kraken_backend import KrakenBackend
+            ocr_result = KrakenBackend().process_image(new_crop, page_index=0)
+            ocr_tokens = [
+                {"text": w.text, "bbox": list(w.bbox), "confidence": w.confidence}
+                for w in ocr_result.words
+            ]
+            ocr_text = _line_text_rtl(ocr_tokens)
+            confidence = _mean_confidence(ocr_tokens)
+        except Exception as exc:
+            log.warning(f"replace-line: OCR failed for {page_id}: {exc}")
+
+        ok, new_png_buf = _cv2.imencode(".png", new_crop)
+        new_png_bytes = bytes(new_png_buf) if ok else b""
+
+        # Buffer existing crop bytes before any renumbering — a newly inserted
+        # line can push later lines to *higher* indices (not just lower, as
+        # removal alone would), so in-place renames could clobber a file that
+        # hasn't been read yet. Reading everything into memory first avoids it.
+        buffered = []
+        for ln in kept:
+            png_path = out_dir / f"line_{ln['index']:03d}.png"
+            png_bytes = png_path.read_bytes() if png_path.exists() else b""
+            buffered.append((dict(ln), png_bytes))
+
+        new_entry = {
+            "ocr_text": ocr_text,
+            "baseline": [],
+            "bbox": [nx, ny, nw, nh],
+            "confidence": confidence,
+        }
+        buffered.append((new_entry, new_png_bytes))
+        buffered.sort(key=lambda pair: pair[0]["bbox"][1])
+
+        for old_png in out_dir.glob("line_*.png"):
+            old_png.unlink()
+
+        line_records = []
+        new_index = None
+        for i, (ln, png_bytes) in enumerate(buffered):
+            if ln is new_entry:
+                new_index = i
+            ln["index"] = i
+            out_path = out_dir / f"line_{i:03d}.png"
+            ln["image_path"] = str(out_path)
+            if png_bytes:
+                out_path.write_bytes(png_bytes)
+            line_records.append(ln)
+
+        manifest = {**data, "lines": line_records}
+        (out_dir / "lines.json").write_text(
+            _j.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+
+        return ReplaceLineResponse(
+            new_line=ReplaceLineNewLine(
+                index=new_index, ocr_text=ocr_text, confidence=confidence, bbox=[nx, ny, nw, nh],
+            ),
+            total_lines=len(line_records),
+        )
 
     # ── POST /api/import/upload-pdf ─────────────────────────────────────────
     @router.post("/api/import/upload-pdf", response_model=ImportUploadResponse)

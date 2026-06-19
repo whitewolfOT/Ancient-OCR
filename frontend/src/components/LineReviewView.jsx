@@ -10,6 +10,19 @@ function pageImgUrl(pageId) {
   return `${API}/images/${pageId}`
 }
 
+// Scan forward from fromIdx+1, wrapping around once, for the next line whose
+// status is still 'pending'. Returns fromIdx itself (a sentinel, not a real
+// destination) when no other pending line exists — callers treat that as
+// "all done" rather than navigating.
+function findNextPending(lines, fromIdx) {
+  const n = lines.length
+  for (let offset = 1; offset < n; offset++) {
+    const i = (fromIdx + offset) % n
+    if (lines[i].status === 'pending') return i
+  }
+  return fromIdx
+}
+
 // ── Progress bar ─────────────────────────────────────────────────────────────
 function ProgressBar({ done, total }) {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
@@ -86,6 +99,9 @@ export default function LineReviewView({ onBack }) {
   const [saving, setSaving]           = useState(false)
   const [imgScale, setImgScale]       = useState({ x: 1, y: 1 })
   const [pageStats, setPageStats]     = useState({})
+  const [drawMode, setDrawMode]       = useState(false)
+  const [drawRect, setDrawRect]       = useState(null)   // {x1,y1,x2,y2} in natural image px
+  const [replacing, setReplacing]     = useState(false)
 
   const textareaRef  = useRef(null)
   const pageImgRef   = useRef(null)
@@ -93,6 +109,7 @@ export default function LineReviewView({ onBack }) {
   const idxRef       = useRef(currentIdx)
   const inputRef_val = useRef(inputText)
   const savingRef    = useRef(saving)
+  const drawingRef   = useRef(false)
 
   linesRef.current     = lines
   idxRef.current       = currentIdx
@@ -121,6 +138,8 @@ export default function LineReviewView({ onBack }) {
     let cancelled = false
     setLoading(true)
     setLines([])
+    setDrawMode(false)
+    setDrawRect(null)
     fetch(`${API}/api/lines/${encodeURIComponent(currentPage)}`)
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then(data => {
@@ -163,6 +182,78 @@ export default function LineReviewView({ onBack }) {
     return () => window.removeEventListener('resize', computeScale)
   }, [])
 
+  // ── Draw-to-replace a broken/fragmented line ──────────────────────────────
+  function imgCoordsFromEvent(e) {
+    const el = pageImgRef.current
+    if (!el) return { x: 0, y: 0 }
+    const rect = el.getBoundingClientRect()
+    return {
+      x: (e.clientX - rect.left) / (imgScale.x || 1),
+      y: (e.clientY - rect.top) / (imgScale.y || 1),
+    }
+  }
+
+  function handleDrawMouseDown(e) {
+    const { x, y } = imgCoordsFromEvent(e)
+    drawingRef.current = true
+    setDrawRect({ x1: x, y1: y, x2: x, y2: y })
+  }
+
+  function handleDrawMouseMove(e) {
+    if (!drawingRef.current) return
+    const { x, y } = imgCoordsFromEvent(e)
+    setDrawRect(prev => prev ? { ...prev, x2: x, y2: y } : null)
+  }
+
+  function handleDrawMouseUp(e) {
+    if (!drawingRef.current) return
+    drawingRef.current = false
+    const { x, y } = imgCoordsFromEvent(e)
+    setDrawRect(prev => {
+      if (!prev) return null
+      const x1 = Math.min(prev.x1, x), y1 = Math.min(prev.y1, y)
+      const bw = Math.round(Math.abs(x - prev.x1))
+      const bh = Math.round(Math.abs(y - prev.y1))
+      if (bw > 4 && bh > 4) {
+        submitReplaceLine([Math.round(x1), Math.round(y1), bw, bh])
+      }
+      return null
+    })
+  }
+
+  async function submitReplaceLine(newBbox) {
+    const line = linesRef.current[idxRef.current]
+    if (!line) return
+    setReplacing(true)
+    try {
+      const r = await fetch(
+        `${API}/api/lines/${encodeURIComponent(currentPage)}/replace-line`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            old_line_index: line.index,
+            new_bbox: newBbox,
+            replace_adjacent: true,
+          }),
+        }
+      )
+      if (!r.ok) return
+      const data = await r.json()
+      const r2 = await fetch(`${API}/api/lines/${encodeURIComponent(currentPage)}`)
+      const fresh = r2.ok ? await r2.json() : null
+      const ls = fresh?.lines || []
+      setLines(ls)
+      const newIdx = ls.findIndex(l => l.index === data.new_line.index)
+      setCurrentIdx(newIdx >= 0 ? newIdx : Math.min(data.new_line.index, ls.length - 1))
+      setInputText(data.new_line.ocr_text || '')
+      fetchSummary()
+    } finally {
+      setReplacing(false)
+      setDrawMode(false)
+    }
+  }
+
   // ── Save + advance ────────────────────────────────────────────────────────
   const saveAndAdvance = useCallback(async (text, status) => {
     const ls   = linesRef.current
@@ -184,12 +275,12 @@ export default function LineReviewView({ onBack }) {
       setLines(prev => prev.map(l =>
         l.index === line.index ? { ...l, corrected_text: text, status } : l
       ))
-      // Advance: prefer next pending after current
+      // Advance to the next PENDING line only, wrapping around once.
       const updated = ls.map(l =>
         l.index === line.index ? { ...l, status } : l
       )
-      const next = updated.findIndex((l, i) => i > idx && l.status === 'pending')
-      setCurrentIdx(next >= 0 ? next : Math.min(idx + 1, ls.length - 1))
+      const next = findNextPending(updated, idx)
+      setCurrentIdx(next)
       // Refresh summary counters
       fetchSummary()
     } finally {
@@ -291,6 +382,12 @@ export default function LineReviewView({ onBack }) {
         </div>
       </div>
 
+      {lines.length > 0 && lines.every(l => l.status !== 'pending') && (
+        <div className="flex-none border-b border-green-200 bg-green-50 px-4 py-1.5 text-center text-sm font-medium text-green-700">
+          ✓ All lines on this page are done.
+        </div>
+      )}
+
       {/* ── Body: left page panel + right correction panel ─────────────── */}
       <div className="flex flex-1 overflow-hidden">
 
@@ -339,6 +436,43 @@ export default function LineReviewView({ onBack }) {
                   })}
                 </svg>
               )}
+              {/* Draw-to-replace capture overlay + live preview rect */}
+              {drawMode && (
+                <div
+                  className="absolute inset-0"
+                  style={{ cursor: replacing ? 'wait' : 'crosshair' }}
+                  onMouseDown={handleDrawMouseDown}
+                  onMouseMove={handleDrawMouseMove}
+                  onMouseUp={handleDrawMouseUp}
+                >
+                  <svg className="pointer-events-none absolute inset-0" style={{ width: '100%', height: '100%' }}>
+                    {drawRect && (
+                      <rect
+                        x={Math.min(drawRect.x1, drawRect.x2) * imgScale.x}
+                        y={Math.min(drawRect.y1, drawRect.y2) * imgScale.y}
+                        width={Math.abs(drawRect.x2 - drawRect.x1) * imgScale.x}
+                        height={Math.abs(drawRect.y2 - drawRect.y1) * imgScale.y}
+                        fill="rgba(234,88,12,0.2)"
+                        stroke="#ea580c"
+                        strokeWidth={2}
+                        strokeDasharray="4"
+                      />
+                    )}
+                  </svg>
+                </div>
+              )}
+            </div>
+          )}
+          {drawMode && (
+            <div className="flex-none border-t border-orange-200 bg-orange-50 px-3 py-1.5 text-xs text-orange-700">
+              {replacing
+                ? 'Replacing line…'
+                : 'Draw a box around the broken/fragmented line, covering it fully.'}
+              {' '}
+              <button
+                onClick={() => { setDrawMode(false); setDrawRect(null) }}
+                className="ml-2 underline hover:no-underline"
+              >cancel</button>
             </div>
           )}
         </div>
@@ -405,6 +539,18 @@ export default function LineReviewView({ onBack }) {
                   className="flex items-center justify-center gap-2 rounded border border-red-200 py-2 text-sm text-red-500 hover:bg-red-50 disabled:opacity-50"
                 >
                   ✗ Mark unreadable <kbd className="rounded bg-red-50 px-1 text-xs">U</kbd>
+                </button>
+                <button
+                  onClick={() => { setDrawMode(d => !d); setDrawRect(null) }}
+                  disabled={replacing}
+                  className={`flex items-center justify-center gap-2 rounded border py-2 text-sm disabled:opacity-50 ${
+                    drawMode
+                      ? 'border-orange-400 bg-orange-50 text-orange-700'
+                      : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                  }`}
+                  title="Draw a box on the page to replace this line with a fresh region (e.g. for broken/fragmented lines)"
+                >
+                  ✏️ {drawMode ? 'Cancel drawing' : 'Fix line (draw new box)'}
                 </button>
               </div>
 
