@@ -1429,6 +1429,9 @@ def register_routes(app):
 
         lines = _self_mod._run_blla_segment(processed, rtl=prof.rtl)
 
+        from preprocessing.seg_filter import config_from_global, filter_lines
+        lines = filter_lines(lines, config_from_global())
+
         paths["segments"].mkdir(parents=True, exist_ok=True)
         payload = {"page_id": page_id, "line_count": len(lines), "lines": lines}
         (paths["segments"] / f"{page_id}.json").write_text(
@@ -1463,6 +1466,12 @@ def register_routes(app):
             raise HTTPException(status_code=400, detail="Could not decode image")
         h_img, w_img = raw_img.shape[:2]
 
+        from preprocessing.seg_filter import config_from_global, filter_lines
+        kept_ids = {
+            d["id"] for d in filter_lines([l.model_dump() for l in body.lines], config_from_global())
+        }
+        accepted_lines = [l for l in body.lines if l.id in kept_ids]
+
         profile = _get_profile_mgr().get(body.profile_name)
         from preprocessing.adjustments import apply_profile_adjustments
         preprocessed_img = apply_profile_adjustments(raw_img, profile.preprocessing)
@@ -1475,14 +1484,14 @@ def register_routes(app):
             for w in ocr_result.words
         ]
 
-        line_bboxes = [line.bbox for line in body.lines]
+        line_bboxes = [line.bbox for line in accepted_lines]
         token_map = _assign_tokens_to_lines(ocr_tokens, line_bboxes)
 
         out_dir = _self_mod._LINES_DIR / page_id
         out_dir.mkdir(parents=True, exist_ok=True)
 
         line_records = []
-        for i, line in enumerate(body.lines):
+        for i, line in enumerate(accepted_lines):
             boundary = line.boundary if line.boundary else [
                 [line.bbox[0], line.bbox[1]],
                 [line.bbox[0] + line.bbox[2], line.bbox[1]],
@@ -1515,7 +1524,7 @@ def register_routes(app):
 
         paths["accepted"].mkdir(parents=True, exist_ok=True)
         (paths["accepted"] / f"{page_id}.json").write_text(
-            _j.dumps({"lines": [l.model_dump() for l in body.lines]}, ensure_ascii=False, indent=2),
+            _j.dumps({"lines": [l.model_dump() for l in accepted_lines]}, ensure_ascii=False, indent=2),
             encoding="utf-8",
         )
 

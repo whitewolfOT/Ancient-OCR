@@ -208,6 +208,12 @@ def process_page(
             print(f"    token-cluster fallback: {len(seg_lines)} lines")
             source = "token_cluster"
 
+    from preprocessing.seg_filter import config_from_global, filter_lines
+    before = len(seg_lines)
+    seg_lines = filter_lines(seg_lines, config_from_global())
+    if len(seg_lines) != before:
+        print(f"    seg_filter: {before} -> {len(seg_lines)} lines (noise removed)")
+
     # Match OCR tokens to lines
     page_tokens = ocr_pages.get(page_id, {}).get("tokens", [])
     token_map = _match_tokens_to_lines(page_tokens, seg_lines)

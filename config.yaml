@@ -198,6 +198,13 @@ profiles:
   profiles_file: "config/profiles.yaml"
   active_profile: "default"
 
+segmentation:
+  line_filters:
+    min_height_px: 20        # lines shorter than this are noise (dots, dashes)
+    min_width_px: 80         # lines narrower than this are fragments
+    min_area_px2: 1600       # lines smaller than this by area are noise
+    max_lines_per_page: 60   # sanity cap — reject pages with absurd line counts
+
 kraken:
   enabled: true
   seg_model: "zenodo:14295555"
