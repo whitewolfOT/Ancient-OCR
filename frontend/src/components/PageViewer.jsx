@@ -17,7 +17,7 @@ const DECISION_COLORS = {
  *   ocrTokens            — [{text, bbox, confidence, decision, sources}] | null
  *   onRequestOCR         — () => void
  */
-export default function PageViewer({ pageId, preprocessedImageB64, ocrTokens, onRequestOCR }) {
+export default function PageViewer({ pageId, preprocessedImageB64, ocrTokens, ocrRunning, ocrError, onRequestOCR }) {
   const [activeTab, setActiveTab] = useState('image')   // 'image' | 'compare'
   const [showPreprocessed, setShowPreprocessed] = useState(true)
   const [imgLoaded, setImgLoaded] = useState(false)
@@ -159,7 +159,15 @@ export default function PageViewer({ pageId, preprocessedImageB64, ocrTokens, on
                 {showHeatmap ? 'Hide heatmap' : 'Show heatmap'}
               </button>
             )}
-            {!hasTokens && (
+            {ocrRunning ? (
+              <span className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600">
+                <svg className="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+                Running OCR…
+              </span>
+            ) : !hasTokens ? (
               <button
                 onClick={onRequestOCR}
                 disabled={!onRequestOCR}
@@ -169,8 +177,23 @@ export default function PageViewer({ pageId, preprocessedImageB64, ocrTokens, on
               >
                 Run OCR
               </button>
-            )}
+            ) : null}
           </div>
+
+          {ocrError && (
+            <div className="absolute inset-x-0 top-10 z-10 mx-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700 shadow">
+              <span className="mt-0.5 shrink-0 text-red-400">⚠</span>
+              <div className="min-w-0">
+                <p className="font-semibold">OCR failed</p>
+                <p className="mt-0.5 break-words font-mono text-[11px]">{ocrError}</p>
+              </div>
+              <button
+                onClick={onDismissOcrError}
+                className="ml-auto shrink-0 text-red-400 hover:text-red-600"
+                title="Dismiss"
+              >✕</button>
+            </div>
+          )}
 
           {hasPreview && (
             <span className={[

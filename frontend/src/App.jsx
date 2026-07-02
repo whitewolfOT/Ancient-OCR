@@ -31,6 +31,7 @@ function MainApp() {
   const [preprocessedB64, setPreprocessedB64] = useState(null)
   const [ocrTokens, setOcrTokens] = useState(null)   // null | token[]
   const [ocrRunning, setOcrRunning] = useState(false)
+  const [ocrError, setOcrError]     = useState(null)   // string | null
   const [profileName, setProfileName] = useState('default')
   const [activeView, setActiveView] = useState('workspace') // 'workspace' | 'review' | 'annotate' | 'line-review' | 'import'
   // Incrementing this remounts PageSidebar, re-fetching page list with updated status icons
@@ -69,12 +70,20 @@ function MainApp() {
   async function handleRequestOCR() {
     if (!selectedPageId || ocrRunning) return
     setOcrRunning(true)
+    setOcrError(null)
     try {
       const result = await runPageOCR(selectedPageId)
       setOcrTokens(result.tokens)
       setSidebarRefreshKey((k) => k + 1)   // refresh sidebar to show ocr_done status
     } catch (err) {
+      // Surface the server's detail string, falling back to the HTTP status text
+      const detail =
+        err?.response?.data?.detail ||
+        err?.response?.statusText ||
+        err?.message ||
+        'OCR failed'
       console.error('OCR failed:', err)
+      setOcrError(detail)
     } finally {
       setOcrRunning(false)
     }
@@ -229,6 +238,9 @@ function MainApp() {
             pageId={selectedPageId}
             preprocessedImageB64={preprocessedB64}
             ocrTokens={ocrRunning ? null : ocrTokens}
+            ocrRunning={ocrRunning}
+            ocrError={ocrError}
+            onDismissOcrError={() => setOcrError(null)}
             onRequestOCR={handleRequestOCR}
           />
           <PreprocessingControls
