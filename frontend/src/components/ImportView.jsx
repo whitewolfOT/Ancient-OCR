@@ -177,15 +177,42 @@ export default function ImportView({ onBack, onNavigateLineReview }) {
         `${API}/api/import/segment/${session.session_id}/${currentPageId}?profile=${encodeURIComponent(profileName)}`,
         { method: 'POST' }
       )
-      if (!r.ok) throw new Error('segment failed')
+      if (!r.ok) {
+        let detail = `HTTP ${r.status}`
+        try { const j = await r.json(); detail = j.detail || detail } catch {}
+        throw new Error(detail)
+      }
       const data = await r.json()
       setLines(data.lines.map(l => ({ ...l, _status: 'pending' })))
       setPageStatus(prev => ({ ...prev, [currentPageId]: 'segmented' }))
       setSelectedLineId(null)
-    } catch {
-      setToast({ text: 'Segmentation failed', kind: 'error' })
+    } catch (err) {
+      setToast({ text: `Segmentation failed: ${err.message}`, kind: 'error' })
     } finally {
       setSegmenting(false)
+    }
+  }
+
+  // ── Delete page ───────────────────────────────────────────────────────────
+  async function handleDeletePage(pid) {
+    if (!session) return
+    if (!window.confirm(`Delete page "${pid}" from this session?`)) return
+    try {
+      const r = await fetch(
+        `${API}/api/import/pages/${session.session_id}/${pid}`,
+        { method: 'DELETE' }
+      )
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const data = await r.json()
+      setSession(prev => ({ ...prev, page_count: data.remaining_pages.length, page_ids: data.remaining_pages }))
+      setPageStatus(prev => { const s = { ...prev }; delete s[pid]; return s })
+      if (currentPageId === pid) {
+        setCurrentPageId(data.remaining_pages.length > 0 ? data.remaining_pages[0] : null)
+        setLines([])
+        setSelectedLineId(null)
+      }
+    } catch (err) {
+      setToast({ text: `Delete failed: ${err.message}`, kind: 'error' })
     }
   }
 
@@ -413,16 +440,27 @@ export default function ImportView({ onBack, onNavigateLineReview }) {
               const { icon, color } = statusIcon(pageStatus[pid] || 'none')
               const isCurrent = pid === currentPageId
               return (
-                <button
+                <div
                   key={pid}
-                  onClick={() => setCurrentPageId(pid)}
-                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs ${
-                    isCurrent ? 'bg-indigo-50 font-semibold text-indigo-700' : 'text-gray-600 hover:bg-gray-50'
+                  className={`group flex w-full items-center gap-1 pr-1 text-xs ${
+                    isCurrent ? 'bg-indigo-50' : 'hover:bg-gray-50'
                   }`}
                 >
-                  <span className={color}>{icon}</span>
-                  {pid}
-                </button>
+                  <button
+                    onClick={() => setCurrentPageId(pid)}
+                    className={`flex flex-1 items-center gap-2 px-3 py-2 text-left ${
+                      isCurrent ? 'font-semibold text-indigo-700' : 'text-gray-600'
+                    }`}
+                  >
+                    <span className={color}>{icon}</span>
+                    {pid}
+                  </button>
+                  <button
+                    onClick={e => { e.stopPropagation(); handleDeletePage(pid) }}
+                    className="hidden rounded p-1 text-gray-300 hover:bg-red-50 hover:text-red-500 group-hover:block"
+                    title={`Delete page ${pid}`}
+                  >✕</button>
+                </div>
               )
             })
           )}
@@ -539,52 +577,44 @@ export default function ImportView({ onBack, onNavigateLineReview }) {
                   />
                 </div>
               </div>
+
+              {/* ── Below image: selected line panel ────────────────────── */}
+              {selectedLine && (
+                <div className="flex flex-none items-center gap-4 border-t border-gray-200 bg-white px-4 py-2">
+                  <div className="overflow-x-auto rounded border border-gray-200 bg-white p-1">
+                    <canvas ref={cropCanvasRef} className="block" style={{ imageRendering: 'pixelated', maxHeight: 60 }} />
+                  </div>
+                  <p className="text-[10px] text-gray-400 shrink-0">
+                    bbox: [{selectedLine.bbox.join(', ')}]
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setLines(prev => prev.map(l => l.id === selectedLineId ? { ...l, _status: 'accepted' } : l))}
+                      className="rounded bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                    >
+                      ✓ Accept
+                    </button>
+                    <button
+                      onClick={() => setLines(prev => prev.map(l => l.id === selectedLineId ? { ...l, _status: 'rejected' } : l))}
+                      className="rounded border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                    >
+                      ✗ Reject
+                    </button>
+                    <button
+                      onClick={() => { setLines(prev => prev.filter(l => l.id !== selectedLineId)); setSelectedLineId(null) }}
+                      className="rounded border border-gray-200 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50"
+                    >
+                      🗑 Del
+                    </button>
+                  </div>
+                  <p className="ml-auto text-[10px] text-gray-400">
+                    Drag corner to resize · drag inside to move · Del key to delete
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>
-
-        {/* ── Right: selected line panel ───────────────────────────────── */}
-        <aside className="flex w-72 flex-shrink-0 flex-col gap-3 overflow-y-auto border-l border-gray-200 bg-white p-4">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Selected line</h2>
-          {!selectedLine ? (
-            <p className="text-sm text-gray-400">Click a line on the page to select it.</p>
-          ) : (
-            <>
-              <div className="overflow-x-auto rounded border border-gray-200 bg-white p-2">
-                <canvas ref={cropCanvasRef} className="block" style={{ imageRendering: 'pixelated' }} />
-              </div>
-              <p className="text-[10px] text-gray-400">
-                bbox: [{selectedLine.bbox.join(', ')}]
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setLines(prev => prev.map(l => l.id === selectedLineId ? { ...l, _status: 'accepted' } : l))}
-                  className="flex-1 rounded bg-green-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-                >
-                  ✓ Accept
-                </button>
-                <button
-                  onClick={() => setLines(prev => prev.map(l => l.id === selectedLineId ? { ...l, _status: 'rejected' } : l))}
-                  className="flex-1 rounded border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-                >
-                  ✗ Reject
-                </button>
-              </div>
-              <button
-                onClick={() => { setLines(prev => prev.filter(l => l.id !== selectedLineId)); setSelectedLineId(null) }}
-                className="rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-50"
-              >
-                🗑 Delete (Del)
-              </button>
-            </>
-          )}
-
-          <div className="mt-auto space-y-0.5 text-[10px] text-gray-400">
-            <p>Drag a corner handle to resize · drag inside to move</p>
-            <p>Del : delete selected line</p>
-            <p>+ Add line box, then drag on the image to draw</p>
-          </div>
-        </aside>
       </div>
     </div>
   )

@@ -60,6 +60,7 @@ try:
         ImportUploadResponse, ImportSessionInfo, ImportSessionsResponse,
         ImportLineItem, ImportSegmentResponse,
         ImportAcceptLinesRequest, ImportAcceptLinesResponse,
+        ImportDeletePageResponse,
         ContributeWordResponse, ContributeSubmitRequest, ContributeSubmitResponse,
         ContributorInfo, ContributeStatsResponse,
     )
@@ -143,6 +144,7 @@ def register_routes(app):
         ImportUploadResponse, ImportSessionInfo, ImportSessionsResponse,
         ImportLineItem, ImportSegmentResponse,
         ImportAcceptLinesRequest, ImportAcceptLinesResponse,
+        ImportDeletePageResponse,
         ContributeWordResponse, ContributeSubmitRequest, ContributeSubmitResponse,
         ContributorInfo, ContributeStatsResponse,
     )
@@ -1526,6 +1528,16 @@ def register_routes(app):
         if not img_path.exists():
             raise HTTPException(status_code=404, detail="Page not found")
 
+        model_path = Path("models/kraken/muharaf_seg_best.mlmodel")
+        if not model_path.exists():
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    f"Segmentation model not found at {model_path}. "
+                    "Run: python scripts/download_models.py  (or place the model file manually)."
+                ),
+            )
+
         from preprocessing.adjustments import apply_profile_adjustments
 
         img = _cv2.imread(str(img_path))
@@ -1534,7 +1546,11 @@ def register_routes(app):
         prof = _get_profile_mgr().get(profile)
         processed = apply_profile_adjustments(img, prof.preprocessing)
 
-        lines = _self_mod._run_blla_segment(processed, rtl=prof.rtl)
+        try:
+            lines = _self_mod._run_blla_segment(processed, rtl=prof.rtl)
+        except Exception as exc:
+            log.error("Segmentation failed for %s/%s: %s", session_id, page_id, exc, exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Segmentation failed: {exc}")
 
         from preprocessing.seg_filter import config_from_global, filter_lines
         lines = filter_lines(lines, config_from_global())
@@ -1636,6 +1652,25 @@ def register_routes(app):
         )
 
         return ImportAcceptLinesResponse(saved_lines=len(line_records), page_id=page_id)
+
+    # ── DELETE /api/import/pages/{session_id}/{page_id} ────────────────────
+    @router.delete("/api/import/pages/{session_id}/{page_id}", response_model=ImportDeletePageResponse)
+    def import_delete_page(session_id: str, page_id: str):
+        import shutil as _shutil
+
+        paths = _import_session_paths(session_id)
+        img_path = paths["pages"] / f"{page_id}.jpg"
+        if not img_path.exists():
+            raise HTTPException(status_code=404, detail="Page not found")
+
+        img_path.unlink(missing_ok=True)
+        (paths["segments"] / f"{page_id}.json").unlink(missing_ok=True)
+        (paths["accepted"] / f"{page_id}.json").unlink(missing_ok=True)
+
+        remaining = sorted(
+            p.stem for p in paths["pages"].glob("page_*.jpg")
+        ) if paths["pages"].exists() else []
+        return ImportDeletePageResponse(deleted=page_id, remaining_pages=remaining)
 
     # ── Word contribution workflow ──────────────────────────────────────────
     # Single shared queue across all contributors: low-confidence "abstain"

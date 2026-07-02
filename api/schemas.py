@@ -332,6 +332,11 @@ class ImportAcceptLinesResponse(BaseModel):
     page_id: str
 
 
+class ImportDeletePageResponse(BaseModel):
+    deleted: str
+    remaining_pages: List[str]
+
+
 # ── Word contribution workflow ─────────────────────────────────────────────
 
 class ContributeWordResponse(BaseModel):
