@@ -41,3 +41,4 @@ data/import/
 data/contribute_crops/
 data/contributions/
 data/contribute_sessions.json
+utils/__pycache__/
